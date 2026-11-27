@@ -36,7 +36,29 @@
     return h + "</tbody></table></div></div>";
   }
 
+  function renderTerminal(entradas) {
+    let h = '<div class="out-block"><div class="out-label">' + icon("terminal", 16) + ' Terminal</div><pre class="terminal">';
+    if (!entradas.length) h += '<span class="t-vazio">(nenhum comando executado)</span>';
+    entradas.forEach((t) => {
+      h += '<span class="t-prompt">' + esc(t.cwd) + " $</span> " + esc(t.cmd) + "\n";
+      if (t.out) h += esc(t.out.endsWith("\n") ? t.out : t.out + "\n");
+      if (t.err) h += '<span class="t-err">' + esc(t.err.endsWith("\n") ? t.err : t.err + "\n") + "</span>";
+    });
+    return h + "</pre></div>";
+  }
+
+  function ambientePanel(amb) {
+    if (!amb || amb.linguagem !== "shell") return "";
+    const nomes = Object.keys(amb.arquivos || {});
+    if (!nomes.length && !amb.setup) return "";
+    let h = '<details class="files banco"><summary>' + icon("arquivo", 16) + " Ambiente inicial (o que já existe antes dos seus comandos)</summary>";
+    if (nomes.length) h += '<p class="small muted">Arquivos em ~: ' + nomes.map((n) => "<code>" + esc(n) + "</code>").join(", ") + "</p>";
+    if (amb.setup) h += '<p class="small muted">Preparado com estes comandos:</p>' + MD.highlight(amb.setup, "shell");
+    return h + "</details>";
+  }
+
   function bancoPanel(amb) {
+    if (amb && amb.linguagem === "shell") return ambientePanel(amb);
     if (!amb || !amb.banco) return "";
     const b = amb.banco;
     return '<details class="files banco"><summary>' + icon("arquivo", 16) + " " + esc(b.titulo || "Banco de dados") + ": " +
@@ -46,7 +68,9 @@
   function renderOutput(el, res, opts) {
     opts = opts || {};
     let h = "";
-    if (res.table) {
+    if (res.terminal) {
+      h += renderTerminal(res.terminal);
+    } else if (res.table) {
       h += renderTable(res.table);
     } else if (res.out) {
       h += '<div class="out-block"><div class="out-label">' + icon("terminal", 16) + " Saída</div><pre class=\"out\">" + esc(res.out) + "</pre></div>";
@@ -94,8 +118,8 @@
     const wasSolved = es.solved;
     const local = { tries: 0, hints: persistent ? es.hints : 0, solutionSeen: false, lapsed: false, done: false };
     const uid = "ex" + Math.random().toString(36).slice(2, 8);
-    const files = Ensaio.arquivosDe(item);
     const amb = Ensaio.ambienteDe(item);
+    const files = amb.arquivos;
     const modo = amb.linguagem;
     const banco = amb.banco ? amb.banco.script : "";
     const hints = ex.dicas || [];
@@ -111,7 +135,7 @@
     let body = "";
     if (item.isChallenge && ex.titulo) body += '<h3 class="ex-title">' + esc(ex.titulo) + "</h3>";
     body += '<div class="ex-prompt prose">' + MD.render(ex.enunciado, modo) + "</div>";
-    if (amb.banco) body += bancoPanel(amb);
+    if (amb.banco || amb.linguagem === "shell") body += bancoPanel(amb);
 
     if (ex.tipo === "multipla" || (ex.tipo === "prever" && ex.opcoes)) {
       if (ex.codigo) body += MD.highlight(ex.codigo, modo);
@@ -266,6 +290,7 @@
         files,
         linguagem: modo,
         banco,
+        setup: amb.setup,
         onStatus: (s) => { const st = runEl.querySelector(".run-status"); if (st) st.textContent = s; },
       });
       busy(false);
@@ -308,7 +333,7 @@
           parts.forEach((p, i) => { code += p + (i < parts.length - 1 ? vals[i] : ""); });
           busy(true);
           runEl.innerHTML = '<p class="running">' + icon("relogio", 16) + ' <span class="run-status">Testando sua resposta…</span></p>';
-          const res = await Runner.run({ code, tests: ex.testes, stdin: ex.entrada || [], files, linguagem: modo, banco, onStatus: (s) => { const st = runEl.querySelector(".run-status"); if (st) st.textContent = s; } });
+          const res = await Runner.run({ code, tests: ex.testes, stdin: ex.entrada || [], files, linguagem: modo, banco, setup: amb.setup, onStatus: (s) => { const st = runEl.querySelector(".run-status"); if (st) st.textContent = s; } });
           busy(false);
           renderOutput(runEl, res, { showTests: true, quietEmpty: true });
           ok = !res.error && res.tests.length > 0 && res.tests.every((t) => t.ok);

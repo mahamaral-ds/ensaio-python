@@ -282,12 +282,12 @@
       '<nav class="lesson-nav" id="lesson-nav"></nav></div>';
 
     // Experimento
-    const files = m.arquivos || {};
+    const files = amb.arquivos || {};
     const exp = Editor.create(document.getElementById("exp-ed"), { value: l.exemplo, label: "Editor do experimento", onRun: runExp, linguagem: modo });
     async function runExp() {
       const out = document.getElementById("exp-out");
       out.innerHTML = '<p class="running">' + icon("relogio", 16) + ' <span class="run-status">Executando…</span></p>';
-      const res = await Runner.run({ code: exp.get(), files, stdin: l.entrada || [], linguagem: modo, banco, onStatus: (s) => { const e = out.querySelector(".run-status"); if (e) e.textContent = s; } });
+      const res = await Runner.run({ code: exp.get(), files, stdin: l.entrada || [], linguagem: modo, banco, setup: amb.setup, onStatus: (s) => { const e = out.querySelector(".run-status"); if (e) e.textContent = s; } });
       Exercise.renderOutput(out, res);
     }
     document.getElementById("exp-run").onclick = runExp;
@@ -296,7 +296,7 @@
     if (er) er.onclick = async () => {
       const out = document.getElementById("err-out");
       out.innerHTML = '<p class="running">' + icon("relogio", 16) + ' <span class="run-status">Executando…</span></p>';
-      const res = await Runner.run({ code: l.erro.codigo, files, stdin: l.entrada || [], linguagem: modo, banco, onStatus: (s) => { const e = out.querySelector(".run-status"); if (e) e.textContent = s; } });
+      const res = await Runner.run({ code: l.erro.codigo, files, stdin: l.entrada || [], linguagem: modo, banco, setup: amb.setup, onStatus: (s) => { const e = out.querySelector(".run-status"); if (e) e.textContent = s; } });
       Exercise.renderOutput(out, res);
     };
     Runner.warmup();

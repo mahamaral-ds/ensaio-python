@@ -1,6 +1,6 @@
 # Level Code · Caderno de estudos
 
-Um caderno de estudos gamificado que roda inteiro no navegador, inclusive no celular. Hoje são duas trilhas: **Python**, do básico à ciência de dados, e **SQL**, num banco fictício de compras. O código é executado com o [Pyodide](https://pyodide.org) (Python e SQLite no navegador), os exercícios são corrigidos por testes automáticos e o progresso fica salvo no próprio navegador. Não há servidor nem login.
+Um caderno de estudos gamificado que roda inteiro no navegador, inclusive no celular. Hoje são quatro trilhas: **Python**, do básico à ciência de dados; **SQL**, num banco fictício de compras; **Linux e terminal**; e **Git e GitHub**. O código é executado com o [Pyodide](https://pyodide.org) (Python e SQLite no navegador), e as trilhas de terminal usam um bash, um Git e um GitHub simulados, também no navegador. Os exercícios são corrigidos por testes automáticos e o progresso fica salvo no próprio navegador. Não há servidor nem login.
 
 ## Como abrir
 
@@ -59,7 +59,33 @@ Os exercícios rodam num banco SQLite fictício de compras, com as tabelas `forn
 | 5 | Modelar e modificar: CREATE TABLE e restrições, INSERT, UPDATE, DELETE, transações, índices, views e SQL no Python | 5 | 20 | 2 |
 | | **Total** | **25** | **100** | **10** |
 
-**No total:** 2 trilhas, 13 módulos, 76 lições, 304 exercícios e 27 desafios.
+### Linux e terminal
+
+Os exercícios rodam num terminal bash simulado, com uma pasta pessoal (`/home/analista`) preparada para cada lição. A saída aparece como num terminal de verdade, e a correção confere o estado final das pastas e dos arquivos.
+
+| # | Módulo | Lições | Exercícios | Desafios |
+|---|---|---|---|---|
+| 1 | Navegação e arquivos: pwd, ls, cd, mkdir, cp, mv, rm, cat, head, tail, wc, curingas, find | 4 | 16 | 2 |
+| 2 | Texto e dados: redirecionamentos, pipes, sort, uniq, grep, cut, awk, sed | 4 | 16 | 2 |
+| 3 | Permissões, variáveis de ambiente, processos (ps, kill), tar e zip | 4 | 16 | 2 |
+| 4 | Scripts e automação: argumentos, $(...), condicionais, laços, cron | 4 | 16 | 2 |
+| | **Total** | **16** | **64** | **8** |
+
+### Git e GitHub
+
+O Git simulado responde com as mesmas mensagens do Git de verdade (em inglês). O GitHub também é simulado: `git push`, `git pull` e `git clone` funcionam com repositórios em memória, e o `gh` cria repositórios, pull requests e issues. Em algumas lições, um "colega" envia commits para você praticar `pull` e conflitos.
+
+| # | Módulo | Lições | Exercícios | Desafios |
+|---|---|---|---|---|
+| 1 | Primeiros passos: init, status, add, commit, log, diff, .gitignore, config | 4 | 16 | 2 |
+| 2 | Desfazer e consertar: restore, amend, reset, revert, stash | 4 | 16 | 2 |
+| 3 | Branches e merge: switch, merge, conflitos, tags e fluxo de trabalho | 4 | 16 | 2 |
+| 4 | GitHub e colaboração: remote, push, clone, pull, pull requests, issues | 4 | 16 | 2 |
+| | **Total** | **16** | **64** | **8** |
+
+> O terminal simulado cobre os comandos e opções mais usados, mas não tudo. Alguns recursos ficam de fora, como `git rebase`, editores interativos (nano, vim), rede (curl) e `sudo`. Quando um comando não é suportado, o terminal avisa.
+
+**No total:** 4 trilhas, 21 módulos, 108 lições, 432 exercícios e 43 desafios.
 
 Os tipos de exercício são: múltipla escolha, prever a saída, completar o código, corrigir um código com erro e escrever do zero. Os de código são corrigidos por testes, e cada teste que falha explica o que era esperado.
 
@@ -152,6 +178,16 @@ Num módulo com `trilha: "sql"` e `banco: "compras"`, o código das lições e d
 - `_rows` e `_cols` têm as linhas e os nomes das colunas do último SELECT; `consulta("SELECT ...")` roda uma consulta no banco da pessoa (útil depois de INSERT, UPDATE e CREATE); `_src` é o SQL digitado.
 - Nos exercícios de prever, a saída é o texto `coluna | coluna` seguido de uma linha por registro, com decimais arredondados em 2 casas e `NULL` para valores nulos.
 - Uma lição pode usar Python dentro de um módulo de SQL com `linguagem: "python"` (veja a lição "SQL dentro do Python").
+
+### Exercícios de terminal (Linux e Git)
+
+Em trilhas com `linguagem: "shell"`, o código das lições é uma sequência de comandos bash. Cada execução começa num terminal novo, na pasta `/home/analista`:
+
+- `arquivos` (no módulo, na lição ou no exercício) cria arquivos antes de tudo, com caminhos relativos à pasta pessoal: `{"projeto/README.md": "# Título\n"}`.
+- `setup` (no módulo, na lição ou no exercício, executados nessa ordem) são comandos que preparam o ambiente sem aparecer para a pessoa: criar um repositório, fazer commits, simular um colega. O `cd` do setup define a pasta em que a pessoa começa.
+- Nos testes (em Python), use `ler(caminho)`, `existe(caminho)`, `eh_pasta(caminho)`, `listar(pasta)`, `permissoes(caminho)`, `cwd()`, `var(nome)`, `processos()` e `executa(comandos)`, que roda mais comandos no mesmo terminal e devolve a saída. `_out` tem a saída de todos os comandos e `_src`, o que foi digitado.
+- Para Git, `repo(caminho)` dá acesso ao repositório: `.branch`, `.branches`, `.mensagens(ref)`, `.arquivos(ref)`, `.status()`, `.staged`, `.limpo()`, `.upstream`, `.tags`, `.eh_merge()`, `.em_merge`, `.stash` e `.config(chave)`. `github(nome)` mostra o repositório no GitHub simulado: `.branches`, `.mensagens()`, `.arquivos()`, `.prs` e `.issues`.
+- O simulador fica em `js/minishell.py` (terminal) e `js/minigit.py` (Git e GitHub). Os dois são Python comum e podem ser testados no seu computador.
 - Dentro de `r`...``, não use crase nem `${`.
 
 ### Validar o conteúdo
@@ -169,6 +205,10 @@ content/trilhas.js    trilhas (Python, SQL)
 content/sql-banco.js  banco fictício de compras para a trilha de SQL
 content/m1…m8-*.js    trilha de Python: lições, exercícios e desafios (dados)
 content/s1…s5-*.js    trilha de SQL
+content/l1…l4-*.js    trilha de Linux e terminal
+content/g1…g4-*.js    trilha de Git e GitHub
+js/minishell.py       terminal bash simulado
+js/minigit.py         Git e GitHub (gh) simulados
 js/ensaio.js          registro e índice do conteúdo
 js/runner.js          Python e SQLite no navegador (Pyodide em Web Worker, com tempo limite)
 js/exercise.js        componente de exercício (tipos, dicas, solução, XP)

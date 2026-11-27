@@ -120,7 +120,9 @@
       const linguagem = (ex && ex.linguagem) || (lesson && lesson.linguagem) || module.linguagem || "python";
       const bancoId = (ex && ex.banco) || (lesson && lesson.banco) || module.banco;
       const banco = bancoId ? this.bancos[bancoId] : null;
-      return { linguagem, banco, bancoId };
+      const setup = [module.setup, lesson && lesson.setup, ex && ex.setup].filter(Boolean).join("\n");
+      const arquivos = Object.assign({}, module.arquivos || {}, (lesson && lesson.arquivos) || {}, (ex && ex.arquivos) || {});
+      return { linguagem, banco, bancoId, setup, arquivos };
     },
     ambienteDe(item) {
       return this.ambiente(item.module, item.lesson, item.ex);

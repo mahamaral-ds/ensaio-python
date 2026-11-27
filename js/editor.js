@@ -18,8 +18,8 @@
     if (window.CodeMirror) {
       const cm = CodeMirror(container, {
         value,
-        mode: opts.linguagem === "sql" ? "text/x-sqlite" : "python",
-        indentUnit: opts.linguagem === "sql" ? 2 : 4,
+        mode: opts.linguagem === "sql" ? "text/x-sqlite" : opts.linguagem === "shell" ? "text/x-sh" : "python",
+        indentUnit: opts.linguagem === "python" || !opts.linguagem ? 4 : 2,
         theme: "ensaio",
         lineNumbers: true,
 

@@ -14,3 +14,19 @@ Ensaio.trilha({
   linguagem: "sql",
   resumo: "Consultas, agregações, junções, subconsultas, funções de janela e modelagem, num banco fictício de compras (SQLite).",
 });
+
+Ensaio.trilha({
+  id: "linux",
+  ordem: 3,
+  titulo: "Linux e terminal",
+  linguagem: "shell",
+  resumo: "Navegar, organizar e processar arquivos pela linha de comando, permissões, processos e scripts de automação, num terminal simulado.",
+});
+
+Ensaio.trilha({
+  id: "git",
+  ordem: 4,
+  titulo: "Git e GitHub",
+  linguagem: "shell",
+  resumo: "Versionar projetos com Git (commits, branches, merge, desfazer mudanças) e colaborar no GitHub com push, pull, pull requests e issues.",
+});

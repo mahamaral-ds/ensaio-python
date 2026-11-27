@@ -482,3 +482,9 @@ select { max-width: 320px; min-height: 42px; }
 .sql-table .null, .null { color: var(--ink-3); font-style: italic; }
 .banco { margin-top: 4px; }
 .banco .code-static { margin: 8px 0 0; font-size: 13px; }
+
+/* ---------- Terminal simulado ---------- */
+.terminal { font: 13.5px/1.5 var(--f-mono); background: var(--code-bg); color: var(--code-ink); border-radius: var(--r); padding: 10px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; max-height: 460px; overflow: auto; }
+.terminal .t-prompt { color: var(--syn-kw); font-weight: 500; }
+.terminal .t-err { color: #E9B08A; }
+.terminal .t-vazio { color: var(--code-gutter); }

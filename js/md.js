@@ -28,7 +28,7 @@
       .join("");
   }
 
-  const MODOS = { python: "python", sql: "text/x-sqlite" };
+  const MODOS = { python: "python", sql: "text/x-sqlite", shell: "text/x-sh" };
   function highlight(code, modo) {
     const pre = document.createElement("pre");
     pre.className = "code-static cm-s-ensaio";

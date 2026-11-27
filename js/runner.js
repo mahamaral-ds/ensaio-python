@@ -260,6 +260,48 @@ async def _ensaio_sql(sql, script, tests_json):
         tabela = {"cols": cols, "rows": [[round(v, 4) if isinstance(v, float) else v for v in r] for r in rows[:200]], "total": len(rows)}
     return json.dumps({"out": out, "error": error, "tests": results, "figs": [], "table": tabela})
 
+# ---------- terminal simulado (bash + git) ----------
+
+_SH = [None]
+_SH_DIR = [None]
+
+async def _ensaio_shell(code, setup, files_json, tests_json, fonte):
+    import tempfile, shutil
+    if _SH[0] is None:
+        g = {"__name__": "minishell"}
+        exec(compile(fonte, "<terminal>", "exec"), g)
+        _SH[0] = g
+    sh = _SH[0]
+    sh["GITHUB"].clear()
+    sh["RELOGIO"][0] = 0
+    if _SH_DIR[0]:
+        shutil.rmtree(_SH_DIR[0], ignore_errors=True)
+    raiz = tempfile.mkdtemp(prefix="ensaio_sh_")
+    _SH_DIR[0] = raiz
+    tests = json.loads(tests_json)
+    try:
+        s = sh["executar_sessao"](code, setup, json.loads(files_json), raiz)
+    except BaseException as e:
+        return json.dumps({"out": "", "error": {"type": "Erro no terminal simulado", "message": repr(e), "line": None,
+                           "tip": "Isso é uma falha do simulador, não do seu comando. Tente escrever o comando de outro jeito."},
+                           "tests": [], "figs": [], "terminal": []})
+    trans = s.shell.transcricao
+    out = "".join(t["out"] + t["err"] for t in trans)
+    results = []
+    if tests:
+        ns = {
+            "__builtins__": builtins, "_out": out, "_src": code, "_erros": "".join(t["err"] for t in trans),
+            "_transcricao": trans, "ler": s.ler, "existe": s.existe, "eh_pasta": s.eh_pasta, "listar": s.listar,
+            "permissoes": s.permissoes, "executa": s.executa, "cwd": s.cwd,
+            "repo": lambda caminho=".": sh["RepoTeste"](s.shell, caminho),
+            "github": lambda nome: sh["GitHubTeste"](nome),
+            "var": lambda nome: s.shell.vars.get(nome),
+            "processos": lambda: [p[4] for p in s.shell.processos],
+        }
+        results = await _rodar_testes(tests, ns, None)
+    return json.dumps({"out": out, "error": None, "tests": results, "figs": [], "terminal": trans,
+                       "setupErro": getattr(s, "erro_setup", None)})
+
 async def _ensaio_run(code, tests_json, stdin_json, files_json):
     tests = json.loads(tests_json)
     feed = iter(json.loads(stdin_json))
@@ -320,6 +362,12 @@ async def _ensaio_run(code, tests_json, stdin_json, files_json):
       const { id, code, tests, stdin, files } = ev.data;
       try {
         await ready;
+        if (ev.data.linguagem === "shell") {
+          postMessage({ type: "started", id });
+          const res = await py.globals.get("_ensaio_shell")(code, ev.data.setup || "", JSON.stringify(files || {}), JSON.stringify(tests || []), ev.data.fonte || "");
+          postMessage({ type: "result", id, result: JSON.parse(res) });
+          return;
+        }
         if (ev.data.linguagem === "sql") {
           await py.loadPackage("sqlite3", {
             messageCallback: (m) => { if (/Loading/.test(m)) postMessage({ type: "status", id, text: m }); },
@@ -430,8 +478,27 @@ async def _ensaio_run(code, tests_json, stdin_json, files_json):
     return readyPromise;
   }
 
+  let fonteShell = null;
+  async function carregarShell() {
+    if (fonteShell) return fonteShell;
+    const partes = await Promise.all(["js/minishell.py", "js/minigit.py"].map((u) => fetch(u).then((r) => {
+      if (!r.ok) throw new Error("não foi possível carregar " + u);
+      return r.text();
+    })));
+    fonteShell = partes.join("\n\n");
+    return fonteShell;
+  }
+
   /* run({ code, tests, stdin, files, onStatus }) -> Promise<{ out, error, tests, figs }> */
   async function run(opts) {
+    let fonte = "";
+    if (opts.linguagem === "shell") {
+      try {
+        fonte = await carregarShell();
+      } catch (e) {
+        return { out: "", error: { type: "Terminal indisponível", message: String(e), tip: "Abra o app por um servidor (abrir.bat ou o site publicado), e não direto do arquivo." }, tests: [], figs: [] };
+      }
+    }
     if (!worker) spawn();
     const id = ++seq;
     if (!isReady && opts.onStatus) opts.onStatus("Preparando o Python no navegador (só demora na primeira vez)…");
@@ -451,7 +518,7 @@ async def _ensaio_run(code, tests_json, stdin_json, files_json):
     }
     return new Promise((resolve) => {
       pending[id] = { resolve, onStatus: opts.onStatus, timer: null };
-      worker.postMessage({ id, code: opts.code || "", tests: opts.tests || [], stdin: opts.stdin || [], files: opts.files || {}, linguagem: opts.linguagem || "python", banco: opts.banco || "" });
+      worker.postMessage({ id, code: opts.code || "", tests: opts.tests || [], stdin: opts.stdin || [], files: opts.files || {}, linguagem: opts.linguagem || "python", banco: opts.banco || "", setup: opts.setup || "", fonte });
     });
   }
 
