@@ -463,3 +463,4 @@ select { max-width: 320px; min-height: 42px; }
   .module-link { grid-template-columns: 40px minmax(0, 1fr); }
   .module-n { font-size: 1.7rem; }
 }
+.chip-xp span { background: var(--hl); color: var(--hl-ink); padding: 0 4px; border-radius: 2px; margin-right: 2px; }

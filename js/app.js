@@ -51,7 +51,7 @@
       '<div class="ss-row ss-goal">' + icon("chama", 18) + "<span>" + st + " dia" + (st === 1 ? "" : "s") + '</span><span class="ss-muted">' + Math.min(tx, goal) + "/" + goal + " XP hoje</span></div>";
     document.getElementById("top-status").innerHTML =
       '<span class="chip" title="Sequência de dias">' + icon("chama", 16) + st + "</span>" +
-      '<span class="chip chip-xp" title="' + esc(lv.nome) + '">nv ' + lv.n + " · " + s.xp + " XP</span>";
+      '<span class="chip chip-xp" title="' + esc(lv.nome) + '" aria-label="Nível ' + lv.n + ', ' + s.xp + ' XP"><span aria-hidden="true">' + lv.n + '</span>' + s.xp + " XP</span>";
   }
 
   function bar(pct, label, cls) {
