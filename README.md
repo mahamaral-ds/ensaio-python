@@ -1,6 +1,6 @@
 # Level Code · Caderno de estudos
 
-Um caderno de estudos gamificado que roda inteiro no navegador, inclusive no celular. A primeira trilha ensina Python do básico à ciência de dados: o código é executado com o [Pyodide](https://pyodide.org), os exercícios são corrigidos por testes automáticos e o progresso fica salvo no próprio navegador. Não há servidor nem login.
+Um caderno de estudos gamificado que roda inteiro no navegador, inclusive no celular. Hoje são duas trilhas: **Python**, do básico à ciência de dados, e **SQL**, num banco fictício de compras. O código é executado com o [Pyodide](https://pyodide.org) (Python e SQLite no navegador), os exercícios são corrigidos por testes automáticos e o progresso fica salvo no próprio navegador. Não há servidor nem login.
 
 ## Como abrir
 
@@ -16,7 +16,7 @@ Depois, abra `http://localhost:8000` no navegador.
 
 **No celular:** abra https://mahamaral-ds.github.io/level-code/ (o site é publicado pelo GitHub Pages a partir da branch `main`). No Chrome do Android ou no Safari do iPhone, use "Adicionar à tela inicial" para abrir como app.
 
-> **Primeiro acesso:** é preciso internet para baixar o Python do navegador (cerca de 10 MB) e, quando você chegar ao módulo 7, o NumPy, o pandas e o matplotlib (cerca de 30 MB). Depois disso, tudo fica guardado e o app abre sem internet.
+> **Primeiro acesso:** é preciso internet para baixar o Python do navegador (cerca de 10 MB). O SQLite (menos de 1 MB) é baixado na primeira lição de SQL, e o NumPy, o pandas e o matplotlib (cerca de 30 MB), no módulo 7 de Python. Depois disso, tudo fica guardado e o app abre sem internet.
 
 ## Seu progresso
 
@@ -30,7 +30,9 @@ Limpar os dados do navegador apaga o progresso. Exporte de vez em quando.
 
 ## Trilhas
 
-Cada lição tem quatro partes: **I. Anotação** (explicação curta), **II. Experimento** (exemplo executável e editável), **III. Erro comum** (que dá para executar e ver o erro acontecer) e **IV. Exercícios** (4 por lição, de tipos variados). Cada módulo termina com desafios mais próximos do dia a dia de um analista de dados.
+Cada lição tem quatro partes: **I. Anotação** (explicação curta), **II. Experimento** (exemplo executável e editável), **III. Erro comum** (que dá para executar e ver o erro acontecer) e **IV. Exercícios** (4 por lição, de tipos variados). Cada módulo termina com desafios mais próximos do dia a dia de um analista de dados. Cada trilha tem os seus próprios módulos e desbloqueio, e você pode estudar as duas em paralelo.
+
+### Python
 
 | # | Módulo | Lições | Exercícios | Desafios |
 |---|---|---|---|---|
@@ -43,6 +45,21 @@ Cada lição tem quatro partes: **I. Anotação** (explicação curta), **II. Ex
 | 7 | Python para dados: NumPy, pandas (leitura, limpeza, groupby, merge), matplotlib | 8 | 32 | 3 |
 | 8 | Tópicos avançados: desempenho, otimização, asyncio, APIs, organização de projetos | 5 | 20 | 2 |
 | | **Total** | **51** | **204** | **17** |
+
+### SQL
+
+Os exercícios rodam num banco SQLite fictício de compras, com as tabelas `fornecedores`, `produtos`, `pedidos` e `itens_pedido` (o esquema aparece num painel em cada lição). O resultado das consultas aparece como tabela, e a correção compara o seu resultado com o da consulta esperada.
+
+| # | Módulo | Lições | Exercícios | Desafios |
+|---|---|---|---|---|
+| 1 | Consultas básicas: SELECT, WHERE, IN, BETWEEN, LIKE, ORDER BY, LIMIT, NULL | 5 | 20 | 2 |
+| 2 | Agregação: COUNT, SUM, AVG, GROUP BY, HAVING, CASE WHEN, datas | 5 | 20 | 2 |
+| 3 | Junções: INNER e LEFT JOIN, várias tabelas, junção com agregação, UNION e EXCEPT | 5 | 20 | 2 |
+| 4 | Subconsultas, CTEs (WITH) e funções de janela (ROW_NUMBER, RANK, LAG, acumulados) | 5 | 20 | 2 |
+| 5 | Modelar e modificar: CREATE TABLE e restrições, INSERT, UPDATE, DELETE, transações, índices, views e SQL no Python | 5 | 20 | 2 |
+| | **Total** | **25** | **100** | **10** |
+
+**No total:** 2 trilhas, 13 módulos, 76 lições, 304 exercícios e 27 desafios.
 
 Os tipos de exercício são: múltipla escolha, prever a saída, completar o código, corrigir um código com erro e escrever do zero. Os de código são corrigidos por testes, e cada teste que falha explica o que era esperado.
 
@@ -71,7 +88,7 @@ Refazer um exercício já resolvido não dá XP. Dicas são progressivas: a prim
 
 **Repetição espaçada:** cada exercício resolvido volta para revisão em 1 dia. A cada acerto na revisão, o intervalo cresce para 3, 7, 15 e 30 dias. Se você errar, ele volta para o começo: reaparece no dia seguinte.
 
-**Conquistas:** 19 marcos, entre eles primeiro acerto, primeira lição, primeiro módulo, 10 acertos de primeira, 50, 100 e 200 exercícios, sequências de 3, 7 e 30 dias, 25 e 100 revisões, primeiro desafio e nível 5.
+**Conquistas:** 22 marcos, entre eles primeiro acerto, primeira lição, primeiro módulo, 10 acertos de primeira, 50, 100 e 200 exercícios, sequências de 3, 7 e 30 dias, 25 e 100 revisões, primeiro desafio, nível 5, primeira consulta SQL, trilha de SQL completa e módulos concluídos em duas trilhas.
 
 O painel **Progresso** mostra XP, nível, sequência, atividade das últimas 16 semanas, taxa de acerto por módulo, temas que precisam de reforço (lições com menos de 65% de acerto) e conquistas.
 
@@ -89,11 +106,15 @@ Ciência de dados é trabalho experimental: hipótese, ensaio, observação e an
 
 ## Como adicionar lições e exercícios
 
-O conteúdo fica em `content/`, com um arquivo por módulo, separado do código do app. Cada arquivo chama `Ensaio.modulo(...)`:
+O conteúdo fica em `content/`, separado do código do app:
+
+- `content/trilhas.js` declara as trilhas (`Ensaio.trilha({ id, titulo, linguagem, resumo, ordem })`). A linguagem pode ser `"python"` ou `"sql"`.
+- `content/sql-banco.js` registra o banco de compras (`Ensaio.banco("compras", ...)`) usado pela trilha de SQL.
+- Cada módulo é um arquivo que chama `Ensaio.modulo(...)` e diz a qual trilha pertence:
 
 ```js
 Ensaio.modulo((r) => ({          // r é String.raw: use r`...` para blocos de código
-  id: "m9", ordem: 9,
+  id: "m9", trilha: "python", ordem: 9,
   titulo: "Meu módulo",
   resumo: "Uma frase sobre o módulo.",
   arquivos: { "dados.csv": "a;b\n1;2\n" },   // opcional: arquivos disponíveis para todas as lições
@@ -121,6 +142,16 @@ Ensaio.modulo((r) => ({          // r é String.raw: use r`...` para blocos de c
 - **Tipos:** `multipla`, `prever`, `completar` (lacunas `___`), `corrigir` e `escrever`. Os níveis vão de 1 a 3. Exercícios com `input()` recebem as entradas em `entrada: ["Ana", "30"]`.
 - **IDs:** os exercícios são identificados pela posição dentro da lição. Para não bagunçar o progresso salvo, acrescente exercícios novos no fim da lista.
 - **Módulo novo:** crie o arquivo em `content/` e acrescente uma linha `<script src="content/...">` em `index.html` e em `validar.html`.
+- **Trilha nova:** acrescente a trilha em `content/trilhas.js` e crie os módulos com `trilha: "id-da-trilha"`.
+
+### Exercícios de SQL
+
+Num módulo com `trilha: "sql"` e `banco: "compras"`, o código das lições e dos exercícios é SQL e roda num banco novo a cada execução. Os testes continuam sendo Python, com estes auxiliares:
+
+- `mesmo_resultado("SELECT ...")` compara o resultado da última consulta da pessoa com o da consulta esperada (mesmas linhas, na mesma ordem). Use `mesmo_resultado(..., ordem=False)` quando a ordem não importar. Os nomes das colunas não são comparados.
+- `_rows` e `_cols` têm as linhas e os nomes das colunas do último SELECT; `consulta("SELECT ...")` roda uma consulta no banco da pessoa (útil depois de INSERT, UPDATE e CREATE); `_src` é o SQL digitado.
+- Nos exercícios de prever, a saída é o texto `coluna | coluna` seguido de uma linha por registro, com decimais arredondados em 2 casas e `NULL` para valores nulos.
+- Uma lição pode usar Python dentro de um módulo de SQL com `linguagem: "python"` (veja a lição "SQL dentro do Python").
 - Dentro de `r`...``, não use crase nem `${`.
 
 ### Validar o conteúdo
@@ -134,9 +165,12 @@ index.html            app
 validar.html          validador de conteúdo
 abrir.bat             atalho para abrir no Windows
 sw.js                 funcionamento sem internet
-content/m1…m8-*.js    lições, exercícios e desafios (dados)
+content/trilhas.js    trilhas (Python, SQL)
+content/sql-banco.js  banco fictício de compras para a trilha de SQL
+content/m1…m8-*.js    trilha de Python: lições, exercícios e desafios (dados)
+content/s1…s5-*.js    trilha de SQL
 js/ensaio.js          registro e índice do conteúdo
-js/runner.js          Python no navegador (Pyodide em Web Worker, com tempo limite)
+js/runner.js          Python e SQLite no navegador (Pyodide em Web Worker, com tempo limite)
 js/exercise.js        componente de exercício (tipos, dicas, solução, XP)
 js/state.js           progresso, XP, sequência, revisão espaçada, exportar e importar
 js/rules.js           regras de XP, níveis e conquistas

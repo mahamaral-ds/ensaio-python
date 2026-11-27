@@ -153,6 +153,7 @@
       return 0;
     }
     es.solved = true;
+    state.ultimaTrilha = item.module.trilha;
     es.firstTry = es.tries === 1 && es.hints === 0;
     es.solvedAt = today();
     es.box = 0;
@@ -283,10 +284,10 @@
   }
 
   function isUnlocked(m) {
-    if (m.index === 0) return true;
+    const prev = Ensaio.anterior(m);
+    if (!prev) return true;
     if (state.placement[m.id] && state.placement[m.id].passed) return true;
     if (Object.keys(state.lessons).some((k) => k.startsWith(m.id + "/"))) return true;
-    const prev = Ensaio.modules[m.index - 1];
     const ps = moduleStatus(prev);
     return ps.mastered || ps.pct >= RULES.desbloqueio;
   }
@@ -322,6 +323,8 @@
     const lessonsDone = Object.values(state.lessons).filter((l) => l.done).length;
     const lessonsNoHints = Object.values(state.lessons).filter((l) => l.done && l.noHints).length;
     const doneModules = Ensaio.modules.filter((m) => moduleStatus(m).done).map((m) => m.id);
+    const doneTracks = Ensaio.trilhas.filter((t) => t.modulos.length && t.modulos.every((m) => doneModules.includes(m.id))).map((t) => t.id);
+    const sqlSolved = Object.keys(state.ex).filter((id) => state.ex[id].solved && Ensaio.items[id] && Ensaio.items[id].module.trilha === "sql").length;
     return {
       solved,
       firstTry,
@@ -329,6 +332,8 @@
       lessonsDone,
       lessonsNoHints,
       doneModules,
+      doneTracks,
+      sqlSolved,
       modulesDone: doneModules.length,
       modulesTotal: Ensaio.modules.length,
       bestStreak: Math.max(state.bestStreak, streak()),

@@ -28,19 +28,20 @@
       .join("");
   }
 
-  function highlight(code) {
+  const MODOS = { python: "python", sql: "text/x-sqlite" };
+  function highlight(code, modo) {
     const pre = document.createElement("pre");
     pre.className = "code-static cm-s-ensaio";
     const text = String(code).replace(/^\n/, "").replace(/\s+$/, "");
     if (window.CodeMirror && CodeMirror.runMode) {
-      CodeMirror.runMode(text, "python", pre);
+      CodeMirror.runMode(text, MODOS[modo] || "python", pre);
     } else {
       pre.textContent = text;
     }
     return pre.outerHTML;
   }
 
-  function render(input) {
+  function render(input, modo) {
     if (input == null) return "";
     const blocks = Array.isArray(input) ? input : String(input).split(/\n\s*\n/);
     let html = "";
@@ -52,7 +53,7 @@
     blocks.forEach((b) => {
       if (b && typeof b === "object" && b.codigo != null) {
         close();
-        html += highlight(b.codigo);
+        html += highlight(b.codigo, modo);
         return;
       }
       const t = String(b).trim();

@@ -98,6 +98,7 @@
     const t = document.createElement("div");
     t.className = "toast " + (kind || "");
     t.innerHTML = html;
+    while (box.children.length >= 3) box.firstElementChild.remove();
     box.appendChild(t);
     setTimeout(() => {
       t.classList.add("out");
@@ -106,11 +107,12 @@
   }
 
   Store.on("xp", (e) => {
+    if (e.reason === "conquista") { renderChrome(); return; }
     toast('<span class="stamp">+' + e.amount + " XP</span>", "toast-xp", 1800);
     renderChrome();
   });
   Store.on("goal", (e) => toast(icon("chama", 18) + " <span>Meta do dia batida. Sequência: <strong>" + e.streak + "</strong> dia(s). +" + e.bonus + " XP</span>", "toast-goal", 4200));
-  Store.on("achievement", (a) => toast(icon("medalha", 18) + " <span>Conquista: <strong>" + esc(a.nome) + "</strong><br><small>" + esc(a.desc) + "</small></span>", "toast-ach", 5000));
+  Store.on("achievement", (a) => toast(icon("medalha", 18) + " <span>Conquista: <strong>" + esc(a.nome) + "</strong> <span class=\"xp-inline\">+" + RULES.xpConquista + " XP</span><br><small>" + esc(a.desc) + "</small></span>", "toast-ach", 5000));
   Store.on("level", (lv) => {
     const ov = document.getElementById("overlay");
     ov.hidden = false;
@@ -128,7 +130,9 @@
 
   /* ---------- Auxiliares de conteúdo ---------- */
   function nextLesson() {
-    for (const m of Ensaio.modules) {
+    const ultima = Store.state.ultimaTrilha;
+    const ordem = Ensaio.modules.slice().sort((a, b) => (a.trilha === ultima ? 0 : 1) - (b.trilha === ultima ? 0 : 1) || a.index - b.index);
+    for (const m of ordem) {
       if (!Store.isUnlocked(m)) continue;
       for (const l of m.licoes) if (!Store.lessonStatus(l).done) return l;
       for (const d of m.desafios) if (!(Store.state.ex[d.id_completo] || {}).solved) return { challenge: d, module: m };
@@ -137,6 +141,7 @@
   }
 
   function lessonHref(l) { return "#/licao/" + l.module.id + "/" + l.id; }
+  function nomeModulo(m) { return m.trilhaObj.titulo + " · Módulo " + m.numero; }
   function crumbs(list) {
     return '<nav class="crumbs" aria-label="Você está em">' + list.map((c, i) =>
       i < list.length - 1 ? '<a href="' + c[1] + '">' + esc(c[0]) + "</a>" : '<span aria-current="page">' + esc(c[0]) + "</span>"
@@ -158,12 +163,12 @@
     const first = s.xp === 0 && !Object.keys(s.ex).length;
     let cont = "";
     if (nl && nl.challenge) {
-      cont = '<p class="card-kicker">Continuar</p><h2>Desafio: ' + esc(nl.challenge.titulo) + '</h2><p class="muted">' + esc(nl.module.titulo) +
+      cont = '<p class="card-kicker">Continuar</p><h2>Desafio: ' + esc(nl.challenge.titulo) + '</h2><p class="muted">' + esc(nomeModulo(nl.module)) + " · " + esc(nl.module.titulo) +
         '</p><a class="btn btn-primary" href="#/desafio/' + nl.module.id + "/" + nl.challenge.id + '">Abrir desafio ' + icon("direita", 16) + "</a>";
     } else if (nl) {
       const st = Store.lessonStatus(nl);
       cont = '<p class="card-kicker">' + (st.solved ? "Continuar de onde parou" : "Próxima lição") + "</p><h2>" + esc(nl.titulo) +
-        '</h2><p class="muted">Módulo ' + (nl.module.index + 1) + " · " + esc(nl.module.titulo) + " · " + st.solved + "/" + st.total + " exercícios</p>" +
+        '</h2><p class="muted">' + esc(nomeModulo(nl.module)) + " · " + esc(nl.module.titulo) + " · " + st.solved + "/" + st.total + " exercícios</p>" +
         '<a class="btn btn-primary" href="' + lessonHref(nl) + '">' + (st.solved ? "Continuar" : "Começar") + " " + icon("direita", 16) + "</a>";
     } else {
       cont = '<p class="card-kicker">Trilha</p><h2>Tudo concluído por aqui</h2><p class="muted">Siga revisando para manter o conteúdo vivo na memória.</p>';
@@ -188,22 +193,32 @@
 
   /* ========== Trilhas ========== */
   function viewTrilhas() {
-    const c = Ensaio.contagem();
-    let h = '<div class="page"><header class="page-head"><p class="kicker">Índice</p><h1>Trilhas</h1><p class="lead">' + c.modulos + " módulos, " + c.licoes + " lições, " + c.exercicios + " exercícios e " + c.desafios + ' desafios, do básico à ciência de dados.</p></header><ol class="modules">';
-    Ensaio.modules.forEach((m) => {
+    let h = '<div class="page"><header class="page-head"><p class="kicker">Índice</p><h1>Trilhas</h1><p class="lead">' + Ensaio.trilhas.length + " trilhas. Cada uma tem os seus módulos, desbloqueados em ordem, e um teste de nivelamento por módulo para pular o que você já domina.</p></header>";
+    h += '<nav class="track-jump" aria-label="Ir para a trilha">' + Ensaio.trilhas.map((t) => '<a class="btn btn-ghost" href="#trilha-' + t.id + '" data-trilha="' + t.id + '">' + esc(t.titulo) + "</a>").join("") + "</nav>";
+    Ensaio.trilhas.forEach((t) => {
+      const c = Ensaio.contagem(t.id);
+      const feitos = t.modulos.filter((m) => Store.moduleStatus(m).done).length;
+      h += '<section class="track" id="trilha-' + t.id + '" aria-labelledby="th-' + t.id + '"><header class="track-head"><h2 id="th-' + t.id + '">' + esc(t.titulo) + '</h2><p class="muted">' + esc(t.resumo || "") + '</p><p class="module-meta">' + c.modulos + " módulos · " + c.licoes + " lições · " + c.exercicios + " exercícios · " + c.desafios + " desafios · " + feitos + " concluído" + (feitos === 1 ? "" : "s") + '</p></header><ol class="modules">';
+      t.modulos.forEach((m) => {
       const st = Store.moduleStatus(m);
       const un = Store.isUnlocked(m);
       const cls = st.done ? " is-done" : !un ? " is-locked" : "";
       h += '<li class="module-row' + cls + '"><a href="#/modulo/' + m.id + '" class="module-link">' +
-        '<span class="module-n" aria-hidden="true">' + String(m.index + 1).padStart(2, "0") + "</span>" +
+        '<span class="module-n" aria-hidden="true">' + String(m.numero).padStart(2, "0") + "</span>" +
         '<span class="module-main"><span class="module-title">' + esc(m.titulo) + (un ? "" : ' <span class="tag">' + icon("lock", 14) + " bloqueado</span>") +
         (st.mastered ? ' <span class="tag tag-hl">dominado</span>' : "") + (st.done ? ' <span class="tag tag-ok">' + icon("check", 14) + " concluído</span>" : "") + "</span>" +
         '<span class="module-sum">' + esc(m.resumo) + "</span>" +
         '<span class="module-meta">' + st.lessonsDone + "/" + st.lessonsTotal + " lições · " + st.exSolved + "/" + st.exTotal + " exercícios · " + st.chDone + "/" + st.chTotal + " desafios</span>" +
         bar(st.pct, "Lições concluídas em " + m.titulo) + "</span></a></li>";
+      });
+      h += "</ol></section>";
     });
-    h += "</ol></div>";
+    h += "</div>";
     main.innerHTML = h;
+    main.querySelectorAll(".track-jump a").forEach((a) => (a.onclick = (e) => {
+      e.preventDefault();
+      document.getElementById("trilha-" + a.dataset.trilha).scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
+    }));
   }
 
   /* ========== Módulo ========== */
@@ -212,9 +227,9 @@
     if (!m) return go("#/trilhas");
     const st = Store.moduleStatus(m);
     const un = Store.isUnlocked(m);
-    const prev = Ensaio.modules[m.index - 1];
-    let h = '<div class="page">' + crumbs([["Trilhas", "#/trilhas"], [m.titulo]]) +
-      '<header class="page-head"><p class="kicker">Módulo ' + (m.index + 1) + "</p><h1>" + esc(m.titulo) + '</h1><p class="lead">' + esc(m.resumo) + "</p></header>";
+    const prev = Ensaio.anterior(m);
+    let h = '<div class="page">' + crumbs([["Trilhas", "#/trilhas"], [m.trilhaObj.titulo, "#/trilhas"], [m.titulo]]) +
+      '<header class="page-head"><p class="kicker">' + esc(nomeModulo(m)) + "</p><h1>" + esc(m.titulo) + '</h1><p class="lead">' + esc(m.resumo) + "</p></header>";
     if (!un) {
       h += '<div class="card notice">' + icon("lock", 20) + "<div><p><strong>Módulo bloqueado.</strong> Conclua " + Math.round(RULES.desbloqueio * 100) + "% das lições de <a href=\"#/modulo/" + prev.id + '">' + esc(prev.titulo) + "</a> ou passe no teste de nivelamento de um dos dois módulos.</p></div></div>";
     }
@@ -226,7 +241,7 @@
     m.licoes.forEach((l, i) => {
       const ls = Store.lessonStatus(l);
       const cls = ls.done ? " is-done" : "";
-      const inner = '<span class="lesson-n">' + (m.index + 1) + "." + (i + 1) + '</span><span class="lesson-title"><span class="strike">' + esc(l.titulo) + "</span></span>" +
+      const inner = '<span class="lesson-n">' + m.numero + "." + (i + 1) + '</span><span class="lesson-title"><span class="strike">' + esc(l.titulo) + "</span></span>" +
         '<span class="lesson-meta">' + (ls.mastered ? '<span class="tag tag-hl">dominado</span>' : ls.solved + "/" + ls.total) + "</span>";
       h += '<li class="lesson-row' + cls + '">' + (un ? '<a href="' + lessonHref(l) + '">' + inner + "</a>" : '<span class="is-locked">' + inner + "</span>") + "</li>";
     });
@@ -251,25 +266,28 @@
     if (!l) return go("#/trilhas");
     const m = l.module;
     if (!Store.isUnlocked(m)) return go("#/modulo/" + m.id);
-    const pos = m.index + 1 + "." + (l.index + 1);
+    const pos = m.numero + "." + (l.index + 1);
+    const amb = Ensaio.ambiente(m, l);
+    const modo = amb.linguagem;
+    const banco = amb.banco ? amb.banco.script : "";
 
-    main.innerHTML = '<div class="page page-lesson">' + crumbs([["Trilhas", "#/trilhas"], [m.titulo, "#/modulo/" + m.id], [l.titulo]]) +
-      '<header class="page-head"><p class="kicker">Lição ' + pos + "</p><h1>" + esc(l.titulo) + "</h1></header>" +
-      '<section class="sheet" aria-labelledby="s-anot"><h2 id="s-anot" class="sheet-title"><span class="sheet-n">I</span> Anotação</h2><div class="prose">' + MD.render(l.explicacao) + "</div></section>" +
+    main.innerHTML = '<div class="page page-lesson">' + crumbs([["Trilhas", "#/trilhas"], [m.trilhaObj.titulo, "#/trilhas"], [m.titulo, "#/modulo/" + m.id], [l.titulo]]) +
+      '<header class="page-head"><p class="kicker">' + esc(m.trilhaObj.titulo) + " · Lição " + pos + "</p><h1>" + esc(l.titulo) + "</h1></header>" +
+      '<section class="sheet" aria-labelledby="s-anot"><h2 id="s-anot" class="sheet-title"><span class="sheet-n">I</span> Anotação</h2><div class="prose">' + MD.render(l.explicacao, modo) + "</div>" + Exercise.bancoPanel(amb) + "</section>" +
       '<section class="sheet" aria-labelledby="s-exp"><h2 id="s-exp" class="sheet-title"><span class="sheet-n">II</span> Experimento</h2><p class="muted small">Edite e execute à vontade. Nada aqui vale XP.</p>' +
       '<div class="editor-wrap" id="exp-ed"></div><div class="ex-actions"><button class="btn btn-primary" id="exp-run">' + icon("play", 16) + ' Executar</button><button class="btn btn-ghost" id="exp-reset">' + icon("desfazer", 16) + ' Restaurar</button></div><div id="exp-out" aria-live="polite"></div></section>' +
-      (l.erro ? '<section class="sheet sheet-err" aria-labelledby="s-err"><h2 id="s-err" class="sheet-title"><span class="sheet-n">III</span> Erro comum</h2>' + MD.highlight(l.erro.codigo) +
-        '<div class="prose">' + MD.render(l.erro.explicacao) + '</div><button class="btn btn-ghost" id="err-run">' + icon("play", 16) + ' Executar este código</button><div id="err-out" aria-live="polite"></div></section>' : "") +
+      (l.erro ? '<section class="sheet sheet-err" aria-labelledby="s-err"><h2 id="s-err" class="sheet-title"><span class="sheet-n">III</span> Erro comum</h2>' + MD.highlight(l.erro.codigo, modo) +
+        '<div class="prose">' + MD.render(l.erro.explicacao, modo) + '</div><button class="btn btn-ghost" id="err-run">' + icon("play", 16) + ' Executar este código</button><div id="err-out" aria-live="polite"></div></section>' : "") +
       '<section class="sheet" aria-labelledby="s-ex"><h2 id="s-ex" class="sheet-title"><span class="sheet-n">IV</span> Exercícios</h2><ol class="stepper" id="stepper" aria-label="Exercícios da lição"></ol><div id="ex-slot"></div><div id="lesson-done"></div></section>' +
       '<nav class="lesson-nav" id="lesson-nav"></nav></div>';
 
     // Experimento
     const files = m.arquivos || {};
-    const exp = Editor.create(document.getElementById("exp-ed"), { value: l.exemplo, label: "Editor do experimento", onRun: runExp });
+    const exp = Editor.create(document.getElementById("exp-ed"), { value: l.exemplo, label: "Editor do experimento", onRun: runExp, linguagem: modo });
     async function runExp() {
       const out = document.getElementById("exp-out");
       out.innerHTML = '<p class="running">' + icon("relogio", 16) + ' <span class="run-status">Executando…</span></p>';
-      const res = await Runner.run({ code: exp.get(), files, stdin: l.entrada || [], onStatus: (s) => { const e = out.querySelector(".run-status"); if (e) e.textContent = s; } });
+      const res = await Runner.run({ code: exp.get(), files, stdin: l.entrada || [], linguagem: modo, banco, onStatus: (s) => { const e = out.querySelector(".run-status"); if (e) e.textContent = s; } });
       Exercise.renderOutput(out, res);
     }
     document.getElementById("exp-run").onclick = runExp;
@@ -278,7 +296,7 @@
     if (er) er.onclick = async () => {
       const out = document.getElementById("err-out");
       out.innerHTML = '<p class="running">' + icon("relogio", 16) + ' <span class="run-status">Executando…</span></p>';
-      const res = await Runner.run({ code: l.erro.codigo, files, stdin: l.entrada || [], onStatus: (s) => { const e = out.querySelector(".run-status"); if (e) e.textContent = s; } });
+      const res = await Runner.run({ code: l.erro.codigo, files, stdin: l.entrada || [], linguagem: modo, banco, onStatus: (s) => { const e = out.querySelector(".run-status"); if (e) e.textContent = s; } });
       Exercise.renderOutput(out, res);
     };
     Runner.warmup();
@@ -351,7 +369,7 @@
     if (!Store.isUnlocked(m)) return go("#/modulo/" + m.id);
     const d = item.ex;
     main.innerHTML = '<div class="page page-lesson">' + crumbs([["Trilhas", "#/trilhas"], [m.titulo, "#/modulo/" + m.id], [d.titulo]]) +
-      '<header class="page-head"><p class="kicker">' + icon("frasco", 16) + " Desafio do módulo " + (m.index + 1) + "</p><h1>" + esc(d.titulo) + "</h1></header>" +
+      '<header class="page-head"><p class="kicker">' + icon("frasco", 16) + " Desafio · " + esc(nomeModulo(m)) + "</p><h1>" + esc(d.titulo) + "</h1></header>" +
       '<div id="ch-slot"></div><div id="ch-done"></div></div>';
     const nextD = m.desafios[item.number];
     Exercise.mount(document.getElementById("ch-slot"), item, {
@@ -446,7 +464,7 @@
     }
     function end() {
       const passed = Store.placementResult(m, score, picked.length);
-      const nx = Ensaio.modules[m.index + 1];
+      const nx = Ensaio.proximo(m);
       document.getElementById("pl-slot").innerHTML = '<div class="done-card"><div class="done-stamp' + (passed ? "" : " stamp-muted") + '">' + score + " de " + picked.length + "</div>" +
         (passed ? "<p><strong>Aprovado.</strong> As lições de " + esc(m.titulo) + " estão marcadas como dominadas." + (nx ? " " + esc(nx.titulo) + " está liberado." : "") + "</p>" + (nx ? '<a class="btn btn-hl" href="#/modulo/' + nx.id + '">Ir para ' + esc(nx.titulo) + " " + icon("direita", 16) + "</a>" : "")
           : "<p>Faltou pouco: é preciso " + Math.ceil(RULES.aprovacaoNivelamento * picked.length) + " acertos. Estudar as lições deste módulo vai valer a pena.</p>" + '<a class="btn btn-hl" href="#/modulo/' + m.id + '">Ver lições ' + icon("direita", 16) + "</a>") + "</div>";
@@ -486,7 +504,7 @@
       const a = acc.byModule[m.id];
       const st = Store.moduleStatus(m);
       const rate = a && a.tries ? a.ok / a.tries : null;
-      return '<li class="acc-row"><span class="acc-name">' + (m.index + 1) + ". " + esc(m.titulo) + '</span><span class="acc-bar">' + bar(rate || 0, "Taxa de acerto em " + m.titulo) + '</span><span class="acc-val">' + (rate == null ? "—" : Math.round(rate * 100) + "%") + '</span><span class="acc-sub">' + st.lessonsDone + "/" + st.lessonsTotal + " lições</span></li>";
+      return '<li class="acc-row"><span class="acc-name">' + esc(m.trilhaObj.titulo) + " " + m.numero + ". " + esc(m.titulo) + '</span><span class="acc-bar">' + bar(rate || 0, "Taxa de acerto em " + m.titulo) + '</span><span class="acc-val">' + (rate == null ? "—" : Math.round(rate * 100) + "%") + '</span><span class="acc-sub">' + st.lessonsDone + "/" + st.lessonsTotal + " lições</span></li>";
     }).join("");
 
     const weak = Object.values(acc.byLesson).filter((x) => x.tries >= 3 && x.ok / x.tries < 0.65).sort((a, b) => a.ok / a.tries - b.ok / b.tries).slice(0, 6);

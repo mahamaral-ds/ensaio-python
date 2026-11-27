@@ -24,6 +24,8 @@
   </div>
 
   <script src="js/ensaio.js"></script>
+  <script src="content/trilhas.js"></script>
+  <script src="content/sql-banco.js"></script>
   <script src="content/m1-fundamentos.js"></script>
   <script src="content/m2-estruturas.js"></script>
   <script src="content/m3-funcoes.js"></script>
@@ -32,6 +34,11 @@
   <script src="content/m6-avancado.js"></script>
   <script src="content/m7-dados.js"></script>
   <script src="content/m8-topicos.js"></script>
+  <script src="content/s1-consultas.js"></script>
+  <script src="content/s2-agregacao.js"></script>
+  <script src="content/s3-juncoes.js"></script>
+  <script src="content/s4-subconsultas.js"></script>
+  <script src="content/s5-modelagem.js"></script>
   <script src="js/md.js"></script>
   <script src="js/rules.js"></script>
   <script src="js/runner.js"></script>
@@ -39,7 +46,9 @@
   (function () {
     Ensaio.preparar();
     const sel = document.getElementById("mod");
-    Ensaio.modules.forEach((m) => sel.insertAdjacentHTML("beforeend", '<option value="' + m.id + '">' + m.id + " · " + m.titulo + "</option>"));
+    Ensaio.modules.forEach((m) => sel.insertAdjacentHTML("beforeend", '<option value="' + m.id + '">' + m.trilhaObj.titulo + " " + m.numero + " · " + m.titulo + "</option>"));
+    Ensaio.trilhas.forEach((t) => sel.insertAdjacentHTML("beforeend", '<option value="trilha:' + t.id + '">trilha inteira: ' + t.titulo + "</option>"));
+    const env = (m, l, ex) => { const a = Ensaio.ambiente(m, l, ex); return { linguagem: a.linguagem, banco: a.banco ? a.banco.script : "" }; };
     const norm = (s) => String(s).replace(/\r/g, "").split("\n").map((l) => l.replace(/\s+$/, "")).join("\n").trim();
     const fill = (ex, vals) => {
       const parts = String(ex.codigo).replace(/^\n/, "").replace(/\s+$/, "").split("___");
@@ -57,7 +66,7 @@
       const status = document.getElementById("status");
       let n = 0, bad = 0;
       const report = (id, ok, msg) => { if (ok !== true) { rows.push([id, ok, msg]); if (ok === false) bad++; } };
-      const mods = Ensaio.modules.filter((m) => !only || m.id === only);
+      const mods = Ensaio.modules.filter((m) => !only || m.id === only || only === "trilha:" + m.trilha);
       const total = mods.reduce((a, m) => a + m.licoes.length + m.desafios.length + m.licoes.reduce((b, l) => b + l.exercicios.length, 0), 0);
 
       for (const m of mods) {
@@ -66,7 +75,7 @@
           status.textContent = "Validando " + n + " de " + total + ": " + l.key;
           if (l.exercicios.length !== 4) report(l.key, "warn", l.exercicios.length + " exercícios (o padrão é 4)");
           if (!l.erro) report(l.key, "warn", "sem seção de erro comum");
-          const r0 = await Runner.run({ code: l.exemplo, files: m.arquivos, stdin: l.entrada || [] });
+          const r0 = await Runner.run(Object.assign({ code: l.exemplo, files: m.arquivos, stdin: l.entrada || [] }, env(m, l)));
           if (r0.error) report(l.key + " (exemplo)", false, why(r0));
           for (const ex of l.exercicios) {
             n++;
@@ -90,12 +99,14 @@
 
     async function checkItem(item, report) {
       const ex = item.ex, id = item.id, files = Ensaio.arquivosDe(item);
+      const E = env(item.module, item.lesson, ex);
+      const run = (o) => Runner.run(Object.assign(o, E));
       const dicas = (ex.dicas || []).length;
       if (dicas !== 3) report(id, "warn", dicas + " dicas (o padrão é 3)");
       if (ex.tipo === "multipla" || (ex.tipo === "prever" && ex.opcoes)) {
         if (!(ex.resposta >= 0 && ex.resposta < ex.opcoes.length)) report(id, false, "índice de resposta fora das opções");
         if (ex.tipo === "prever") {
-          const r = await Runner.run({ code: ex.codigo, files, stdin: ex.entrada || [] });
+          const r = await run({ code: ex.codigo, files, stdin: ex.entrada || [] });
           if (r.error && !ex.esperaErro) report(id, false, "o código do prever deu erro: " + why(r));
           else if (!ex.esperaErro && norm(r.out) !== norm(ex.opcoes[ex.resposta])) report(id, false, "saída real:\n" + r.out + "\nresposta marcada:\n" + ex.opcoes[ex.resposta]);
           const dup = ex.opcoes.filter((o, i) => i !== ex.resposta && norm(o) === norm(r.out));
@@ -104,7 +115,7 @@
         return;
       }
       if (ex.tipo === "prever") {
-        const r = await Runner.run({ code: ex.codigo, files, stdin: ex.entrada || [] });
+        const r = await run({ code: ex.codigo, files, stdin: ex.entrada || [] });
         if (norm(r.out) !== norm(ex.saida)) report(id, false, "saída real:\n" + r.out + "\nesperada:\n" + ex.saida);
         return;
       }
@@ -112,7 +123,7 @@
         const blanks = String(ex.codigo).split("___").length - 1;
         if (!ex.respostas || ex.respostas.length !== blanks) { report(id, false, blanks + " lacunas e " + (ex.respostas || []).length + " respostas"); return; }
         if (ex.testes && ex.testes.length) {
-          const r = await Runner.run({ code: fill(ex, ex.respostas.map((a) => a[0])), tests: ex.testes, files, stdin: ex.entrada || [] });
+          const r = await run({ code: fill(ex, ex.respostas.map((a) => a[0])), tests: ex.testes, files, stdin: ex.entrada || [] });
           if (!passed(r)) report(id, false, "a resposta oficial não passa nos testes:\n" + why(r));
         } else report(id, "warn", "completar sem testes");
         return;
@@ -120,9 +131,9 @@
       // corrigir / escrever
       if (!ex.testes || !ex.testes.length) { report(id, false, "sem testes"); return; }
       if (!ex.solucao) { report(id, false, "sem solução"); return; }
-      const rs = await Runner.run({ code: ex.solucao, tests: ex.testes, files, stdin: ex.entrada || [] });
+      const rs = await run({ code: ex.solucao, tests: ex.testes, files, stdin: ex.entrada || [] });
       if (!passed(rs)) report(id, false, "a solução não passa:\n" + why(rs));
-      const ri = await Runner.run({ code: ex.inicial || "", tests: ex.testes, files, stdin: ex.entrada || [] });
+      const ri = await run({ code: ex.inicial || "", tests: ex.testes, files, stdin: ex.entrada || [] });
       if (passed(ri)) report(id, false, "o código inicial já passa em todos os testes");
     }
   })();

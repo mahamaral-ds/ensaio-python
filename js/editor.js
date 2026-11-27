@@ -18,16 +18,17 @@
     if (window.CodeMirror) {
       const cm = CodeMirror(container, {
         value,
-        mode: "python",
+        mode: opts.linguagem === "sql" ? "text/x-sqlite" : "python",
+        indentUnit: opts.linguagem === "sql" ? 2 : 4,
         theme: "ensaio",
         lineNumbers: true,
-        indentUnit: 4,
+
         tabSize: 4,
         indentWithTabs: false,
         matchBrackets: true,
         viewportMargin: Infinity,
         readOnly: !!opts.readOnly,
-        screenReaderLabel: opts.label || "Editor de código Python",
+        screenReaderLabel: opts.label || "Editor de código",
         extraKeys: {
           Tab: (c) => {
             if (c.somethingSelected()) c.indentSelection("add");
@@ -49,7 +50,7 @@
       ta.className = "code-fallback";
       ta.spellcheck = false;
       ta.value = value;
-      ta.setAttribute("aria-label", opts.label || "Editor de código Python");
+      ta.setAttribute("aria-label", opts.label || "Editor de código");
       ta.rows = Math.max(4, value.split("\n").length + 1);
       ta.readOnly = !!opts.readOnly;
       ta.addEventListener("keydown", (e) => {

@@ -67,7 +67,10 @@
     { id: "nivelado", nome: "Já sabia", desc: "Passe num teste de nivelamento.", test: (s) => s.placements >= 1 },
     { id: "nivel-5", nome: "Pesquisador", desc: "Chegue ao nível 5.", test: (s) => s.level >= 5 },
     { id: "dados", nome: "Dados na mão", desc: "Conclua o módulo Python para dados.", test: (s) => s.doneModules.includes("m7") },
-    { id: "trilha-completa", nome: "Tese defendida", desc: "Conclua todos os módulos.", test: (s) => s.modulesDone >= s.modulesTotal && s.modulesTotal > 0 },
+    { id: "trilha-completa", nome: "Tese defendida", desc: "Conclua todos os módulos de uma trilha.", test: (s) => s.doneTracks.length >= 1 },
+    { id: "sql-primeira", nome: "Primeira consulta", desc: "Resolva o seu primeiro exercício de SQL.", test: (s) => s.sqlSolved >= 1 },
+    { id: "sql-completa", nome: "Consulta afiada", desc: "Conclua a trilha de SQL.", test: (s) => s.doneTracks.includes("sql") },
+    { id: "duas-trilhas", nome: "Bilíngue", desc: "Conclua um módulo em duas trilhas diferentes.", test: (s) => new Set(s.doneModules.map((id) => (Ensaio.modulesById[id] || {}).trilha)).size >= 2 },
   ];
 
   window.RULES = RULES;

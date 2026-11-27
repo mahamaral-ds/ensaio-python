@@ -105,6 +105,161 @@ def _prepare_dir(files):
                 sys.modules.pop(k, None)
     importlib.invalidate_caches()
 
+async def _rodar_testes(tests, ns, error):
+    results = []
+    old_out, old_err = sys.stdout, sys.stderr
+    for t in tests:
+        tcode, msg = t[0], t[1]
+        if error is not None and not tcode.lstrip().startswith("#permite-erro"):
+            results.append({"ok": False, "msg": msg, "detail": "o código parou com erro antes deste teste"})
+            continue
+        tb = io.StringIO()
+        sys.stdout = sys.stderr = tb
+        try:
+            await _exec(tcode, ns, "<teste>")
+            results.append({"ok": True, "msg": msg})
+        except AssertionError as e:
+            results.append({"ok": False, "msg": msg, "detail": str(e)})
+        except BaseException as e:
+            d = _fmt_exc(e, "<teste>")
+            results.append({"ok": False, "msg": msg, "detail": d["type"] + ": " + d["message"]})
+        finally:
+            sys.stdout, sys.stderr = old_out, old_err
+    return results
+
+# ---------- SQL (SQLite) ----------
+
+_SQL_DICAS = [
+    ("no such column", "Essa coluna não existe. Confira a grafia e de qual tabela ela vem (o esquema do banco aparece acima do editor)."),
+    ("no such table", "Essa tabela não existe. Confira o nome no esquema do banco."),
+    ("ambiguous column name", "A coluna existe em mais de uma tabela da junção. Prefixe com o nome ou o apelido da tabela, como p.id."),
+    ("misuse of aggregate", "Funções de agregação (SUM, COUNT, AVG...) não podem ir no WHERE. Para filtrar grupos, use HAVING."),
+    ("incomplete input", "O comando terminou antes da hora: falta fechar um parêntese ou uma aspa, ou completar uma cláusula."),
+    ("syntax error", "Erro de sintaxe perto do trecho indicado. Confira as vírgulas entre colunas, as aspas simples nos textos e a ordem das cláusulas: SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT."),
+    ("unrecognized token", "Há um caractere que o SQL não entende. Textos usam aspas simples: 'SP'."),
+    ("no such function", "Essa função não existe no SQLite. Para datas, use date(), strftime() e julianday()."),
+    ("wrong number of arguments", "A função recebeu argumentos a mais ou a menos."),
+    ("UNIQUE constraint failed", "Já existe uma linha com esse valor numa coluna que não aceita repetição (chave primária ou UNIQUE)."),
+    ("NOT NULL constraint failed", "Uma coluna obrigatória (NOT NULL) ficou sem valor."),
+    ("FOREIGN KEY constraint failed", "O valor não existe na tabela referenciada (chave estrangeira)."),
+    ("CHECK constraint failed", "O valor viola uma regra CHECK da tabela."),
+    ("already exists", "Já existe um objeto com esse nome. Use outro nome ou IF NOT EXISTS."),
+    ("no transaction is active", "Não há transação aberta: comece com BEGIN."),
+]
+
+def _sql_split(sql):
+    import sqlite3
+    partes, buf = [], ""
+    for ch in sql:
+        buf += ch
+        if ch == ";" and sqlite3.complete_statement(buf):
+            partes.append(buf)
+            buf = ""
+    if buf.strip():
+        partes.append(buf)
+
+    def vazio(s):
+        linhas = [l.strip() for l in s.splitlines()]
+        linhas = [l for l in linhas if l and not l.startswith("--")]
+        return not "".join(linhas).strip(";").strip()
+    return [p for p in partes if not vazio(p)]
+
+def _sql_novo(script):
+    import sqlite3
+    con = sqlite3.connect(":memory:", isolation_level=None)
+    con.execute("PRAGMA foreign_keys = ON")
+    if script:
+        con.executescript(script)
+    return con
+
+def _sql_exec(con, sql):
+    cols, rows, afetadas, n = None, None, 0, 0
+    for st in _sql_split(sql):
+        cur = con.execute(st)
+        n += 1
+        if cur.description is not None:
+            cols = [d[0] for d in cur.description]
+            rows = cur.fetchall()
+        elif cur.rowcount and cur.rowcount > 0:
+            afetadas += cur.rowcount
+    return cols, rows, afetadas, n
+
+def _sql_fmt(v):
+    if v is None:
+        return "NULL"
+    if isinstance(v, float):
+        return str(round(v, 2))
+    return str(v)
+
+def _sql_norm(row):
+    return tuple(round(v, 4) if isinstance(v, float) else v for v in row)
+
+def _sql_chave(row):
+    return tuple((0, float(v), "") if isinstance(v, (int, float)) else (1, 0.0, "" if v is None else str(v)) for v in row)
+
+def _sql_igual(rows, cols, esperado, script, ordem=True):
+    if rows is None:
+        raise AssertionError("o seu código precisa terminar com um SELECT")
+    cur = _sql_novo(script).execute(esperado)
+    ecols = [d[0] for d in cur.description]
+    erows = cur.fetchall()
+    if len(cols) != len(ecols):
+        raise AssertionError(f"esperava {len(ecols)} coluna(s) ({', '.join(ecols)}), veio {len(cols)} ({', '.join(cols)})")
+    a = [_sql_norm(r) for r in rows]
+    b = [_sql_norm(r) for r in erows]
+    if not ordem:
+        a = sorted(a, key=_sql_chave)
+        b = sorted(b, key=_sql_chave)
+    if len(a) != len(b):
+        raise AssertionError(f"esperava {len(b)} linha(s), veio {len(a)}")
+    for i, (x, y) in enumerate(zip(a, b)):
+        if x != y:
+            raise AssertionError(f"linha {i + 1}: esperava {y}, veio {x}")
+    return True
+
+def _sql_texto(cols, rows, afetadas, n):
+    if cols is None:
+        return f"Comando executado. Linhas afetadas: {afetadas}." if n else "Nenhum comando para executar."
+    linhas = [" | ".join(cols)]
+    for r in rows[:200]:
+        linhas.append(" | ".join(_sql_fmt(v) for v in r))
+    if not rows:
+        linhas.append("(nenhuma linha)")
+    if len(rows) > 200:
+        linhas.append(f"... ({len(rows)} linhas no total)")
+    return "\n".join(linhas)
+
+async def _ensaio_sql(sql, script, tests_json):
+    tests = json.loads(tests_json)
+    error = None
+    cols = rows = con = None
+    afet = n = 0
+    try:
+        con = _sql_novo(script)
+    except Exception as e:
+        error = {"type": "Erro no banco do exercício", "message": str(e), "line": None, "tip": ""}
+    if con is not None:
+        try:
+            cols, rows, afet, n = _sql_exec(con, sql)
+        except Exception as e:
+            msg = str(e)
+            tip = next((t for k, t in _SQL_DICAS if k.lower() in msg.lower()), "")
+            error = {"type": "Erro de SQL", "message": msg, "line": None, "tip": tip}
+    out = "" if error else _sql_texto(cols, rows, afet, n)
+    results = []
+    if tests:
+        ns = {
+            "__builtins__": builtins, "_cols": cols, "_rows": rows, "_con": con, "_src": sql,
+            "_out": out, "_afetadas": afet, "_erro": error["type"] if error else None,
+            "mesmo_resultado": lambda q, ordem=True: _sql_igual(rows, cols, q, script, ordem),
+            "consulta": lambda q: con.execute(q).fetchall(),
+        }
+        results = await _rodar_testes(tests, ns, error)
+    tabela = None
+    if cols is not None and not error:
+        tabela = {"cols": cols, "rows": [[round(v, 4) if isinstance(v, float) else v for v in r] for r in rows[:200]], "total": len(rows)}
+    return json.dumps({"out": out, "error": error, "tests": results, "figs": [], "table": tabela})
+
 async def _ensaio_run(code, tests_json, stdin_json, files_json):
     tests = json.loads(tests_json)
     feed = iter(json.loads(stdin_json))
@@ -143,23 +298,7 @@ async def _ensaio_run(code, tests_json, stdin_json, files_json):
         for _alias, _mod in (("np", "numpy"), ("pd", "pandas")):
             if _alias not in ns and _mod in sys.modules:
                 ns[_alias] = sys.modules[_mod]
-        for t in tests:
-            tcode, msg = t[0], t[1]
-            if error is not None and not tcode.lstrip().startswith("#permite-erro"):
-                results.append({"ok": False, "msg": msg, "detail": "o código parou com erro antes deste teste"})
-                continue
-            tb = io.StringIO()
-            sys.stdout = sys.stderr = tb
-            try:
-                await _exec(tcode, ns, "<teste>")
-                results.append({"ok": True, "msg": msg})
-            except AssertionError as e:
-                results.append({"ok": False, "msg": msg, "detail": str(e)})
-            except BaseException as e:
-                d = _fmt_exc(e, "<teste>")
-                results.append({"ok": False, "msg": msg, "detail": d["type"] + ": " + d["message"]})
-            finally:
-                sys.stdout, sys.stderr = old_out, old_err
+        results = await _rodar_testes(tests, ns, error)
     figs = []
     try:
         figs = _figs()
@@ -181,6 +320,16 @@ async def _ensaio_run(code, tests_json, stdin_json, files_json):
       const { id, code, tests, stdin, files } = ev.data;
       try {
         await ready;
+        if (ev.data.linguagem === "sql") {
+          await py.loadPackage("sqlite3", {
+            messageCallback: (m) => { if (/Loading/.test(m)) postMessage({ type: "status", id, text: m }); },
+            errorCallback: () => {},
+          });
+          postMessage({ type: "started", id });
+          const res = await py.globals.get("_ensaio_sql")(code, ev.data.banco || "", JSON.stringify(tests || []));
+          postMessage({ type: "result", id, result: JSON.parse(res) });
+          return;
+        }
         const all = code + "\\n" + (tests || []).map((t) => t[0]).join("\\n") +
           "\\n" + Object.entries(files || {}).filter(([n]) => n.endsWith(".py")).map(([, c]) => c).join("\\n");
         await py.loadPackagesFromImports(all, {
@@ -302,7 +451,7 @@ async def _ensaio_run(code, tests_json, stdin_json, files_json):
     }
     return new Promise((resolve) => {
       pending[id] = { resolve, onStatus: opts.onStatus, timer: null };
-      worker.postMessage({ id, code: opts.code || "", tests: opts.tests || [], stdin: opts.stdin || [], files: opts.files || {} });
+      worker.postMessage({ id, code: opts.code || "", tests: opts.tests || [], stdin: opts.stdin || [], files: opts.files || {}, linguagem: opts.linguagem || "python", banco: opts.banco || "" });
     });
   }
 

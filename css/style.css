@@ -464,3 +464,21 @@ select { max-width: 320px; min-height: 42px; }
   .module-n { font-size: 1.7rem; }
 }
 .chip-xp span { background: var(--hl); color: var(--hl-ink); padding: 0 4px; border-radius: 2px; margin-right: 2px; }
+
+/* ---------- Trilhas ---------- */
+.track-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: -8px 0 24px; }
+.track { margin-bottom: 36px; }
+.track-head { border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 0; scroll-margin-top: 72px; }
+.track-head h2 { font-size: 1.7rem; }
+.track-head p { margin: 4px 0 0; }
+
+/* ---------- Resultado de SQL ---------- */
+.sql-wrap { overflow-x: auto; border: 1px solid var(--rule-strong); border-radius: var(--r); max-height: 420px; overflow-y: auto; background: var(--sheet); }
+.sql-table { border-collapse: collapse; width: 100%; font: 13.5px/1.4 var(--f-mono); }
+.sql-table th { position: sticky; top: 0; background: var(--paper); text-align: left; font-weight: 500; border-bottom: 2px solid var(--ink); padding: 6px 10px; white-space: nowrap; }
+.sql-table td { padding: 5px 10px; border-bottom: 1px dotted var(--rule-strong); white-space: nowrap; }
+.sql-table td.num { text-align: right; }
+.sql-table tbody tr:hover td { background: var(--hl-soft); }
+.sql-table .null, .null { color: var(--ink-3); font-style: italic; }
+.banco { margin-top: 4px; }
+.banco .code-static { margin: 8px 0 0; font-size: 13px; }

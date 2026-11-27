@@ -19,10 +19,36 @@
 
   /* ---------- Saída de execução ---------- */
 
+  function fmtCelula(v) {
+    if (v === null || v === undefined) return '<span class="null">NULL</span>';
+    if (typeof v === "number") return String(Math.round(v * 100) / 100);
+    return esc(v);
+  }
+
+  function renderTable(t) {
+    let h = '<div class="out-block"><div class="out-label">' + icon("terminal", 16) + " Resultado: " + t.total + " linha" + (t.total === 1 ? "" : "s") +
+      (t.total > t.rows.length ? " (mostrando " + t.rows.length + ")" : "") + '</div><div class="sql-wrap"><table class="sql-table"><thead><tr>' +
+      t.cols.map((c) => "<th scope=\"col\">" + esc(c) + "</th>").join("") + "</tr></thead><tbody>";
+    if (!t.rows.length) h += '<tr><td colspan="' + t.cols.length + '" class="null">(nenhuma linha)</td></tr>';
+    t.rows.forEach((r) => {
+      h += "<tr>" + r.map((v) => '<td class="' + (typeof v === "number" ? "num" : "") + '">' + fmtCelula(v) + "</td>").join("") + "</tr>";
+    });
+    return h + "</tbody></table></div></div>";
+  }
+
+  function bancoPanel(amb) {
+    if (!amb || !amb.banco) return "";
+    const b = amb.banco;
+    return '<details class="files banco"><summary>' + icon("arquivo", 16) + " " + esc(b.titulo || "Banco de dados") + ": " +
+      (b.tabelas || []).map(esc).join(", ") + "</summary>" + MD.highlight(b.esquema, "sql") + "</details>";
+  }
+
   function renderOutput(el, res, opts) {
     opts = opts || {};
     let h = "";
-    if (res.out) {
+    if (res.table) {
+      h += renderTable(res.table);
+    } else if (res.out) {
       h += '<div class="out-block"><div class="out-label">' + icon("terminal", 16) + " Saída</div><pre class=\"out\">" + esc(res.out) + "</pre></div>";
     } else if (!res.error && !(res.figs || []).length && !opts.quietEmpty) {
       h += '<div class="out-block"><div class="out-label">' + icon("terminal", 16) + ' Saída</div><pre class="out out-empty">(nenhuma saída; use print() para ver valores)</pre></div>';
@@ -49,7 +75,8 @@
     el.innerHTML = h;
   }
 
-  function normalizeAnswer(s) {
+  function normalizeAnswer(s, modo) {
+    if (modo === "sql") s = String(s).toLowerCase();
     return String(s).trim().replace(/\s+/g, " ").replace(/"/g, "'").replace(/\s*([(),:=\[\]])\s*/g, "$1");
   }
   function normalizeOutput(s) {
@@ -68,6 +95,9 @@
     const local = { tries: 0, hints: persistent ? es.hints : 0, solutionSeen: false, lapsed: false, done: false };
     const uid = "ex" + Math.random().toString(36).slice(2, 8);
     const files = Ensaio.arquivosDe(item);
+    const amb = Ensaio.ambienteDe(item);
+    const modo = amb.linguagem;
+    const banco = amb.banco ? amb.banco.script : "";
     const hints = ex.dicas || [];
     const allowHelp = mode !== "nivelamento";
     let editor = null;
@@ -80,10 +110,11 @@
 
     let body = "";
     if (item.isChallenge && ex.titulo) body += '<h3 class="ex-title">' + esc(ex.titulo) + "</h3>";
-    body += '<div class="ex-prompt prose">' + MD.render(ex.enunciado) + "</div>";
+    body += '<div class="ex-prompt prose">' + MD.render(ex.enunciado, modo) + "</div>";
+    if (amb.banco) body += bancoPanel(amb);
 
     if (ex.tipo === "multipla" || (ex.tipo === "prever" && ex.opcoes)) {
-      if (ex.codigo) body += MD.highlight(ex.codigo);
+      if (ex.codigo) body += MD.highlight(ex.codigo, modo);
       body += '<fieldset class="opts"><legend class="sr-only">Alternativas</legend>';
       ex.opcoes.forEach((o, i) => {
         const txt = ex.tipo === "prever" ? '<pre class="opt-pre">' + esc(o) + "</pre>" : '<span class="opt-text">' + MD.inline(o) + "</span>";
@@ -92,7 +123,7 @@
       });
       body += "</fieldset>";
     } else if (ex.tipo === "prever") {
-      body += MD.highlight(ex.codigo);
+      body += MD.highlight(ex.codigo, modo);
       body += '<label class="field-label" for="' + uid + '-saida">Saída que você espera</label><textarea class="predict-input mono" id="' + uid + '-saida" rows="3" spellcheck="false"></textarea>';
     } else if (ex.tipo === "completar") {
       const parts = String(ex.codigo).replace(/^\n/, "").replace(/\s+$/, "").split("___");
@@ -158,6 +189,7 @@
       const draft = persistent ? Store.getDraft(item.id) : null;
       let t = null;
       editor = Editor.create($("#" + uid + "-ed"), {
+        linguagem: modo,
         value: draft != null ? draft : start,
         label: "Editor do " + label.toLowerCase(),
         onRun: () => runCode(false),
@@ -172,7 +204,7 @@
       if (!hintsEl) return;
       let h = "";
       for (let i = 0; i < local.hints && i < hints.length; i++) {
-        h += '<div class="hint"><span class="hint-n">Dica ' + (i + 1) + "</span>" + MD.render(hints[i]) + "</div>";
+        h += '<div class="hint"><span class="hint-n">Dica ' + (i + 1) + "</span>" + MD.render(hints[i], modo) + "</div>";
       }
       hintsEl.innerHTML = h;
       if (btnHint) {
@@ -208,10 +240,10 @@
         const parts = String(ex.codigo).replace(/^\n/, "").replace(/\s+$/, "").split("___");
         let full = "";
         parts.forEach((p, i) => { full += p + (i < parts.length - 1 ? ex.respostas[i][0] : ""); });
-        h += MD.highlight(full);
+        h += MD.highlight(full, modo);
       }
-      if (ex.solucao) h += MD.highlight(ex.solucao);
-      if (ex.comentario) h += '<div class="prose">' + MD.render(ex.comentario) + "</div>";
+      if (ex.solucao) h += MD.highlight(ex.solucao, modo);
+      if (ex.comentario) h += '<div class="prose">' + MD.render(ex.comentario, modo) + "</div>";
       h += "</div>";
       solEl.innerHTML = h;
       updateSolutionButton();
@@ -232,6 +264,8 @@
         tests: withTests ? ex.testes : [],
         stdin: ex.entrada || [],
         files,
+        linguagem: modo,
+        banco,
         onStatus: (s) => { const st = runEl.querySelector(".run-status"); if (st) st.textContent = s; },
       });
       busy(false);
@@ -267,20 +301,20 @@
         const inputs = Array.from(root.querySelectorAll(".blank"));
         const vals = inputs.map((i) => i.value);
         if (vals.some((v) => !v.trim())) return { invalid: "Preencha todas as lacunas antes de verificar." };
-        let ok = inputs.every((inp, i) => (ex.respostas[i] || []).some((a) => normalizeAnswer(a) === normalizeAnswer(inp.value)));
+        let ok = inputs.every((inp, i) => (ex.respostas[i] || []).some((a) => normalizeAnswer(a, modo) === normalizeAnswer(inp.value, modo)));
         if (!ok && ex.testes && ex.testes.length) {
           const parts = String(ex.codigo).replace(/^\n/, "").replace(/\s+$/, "").split("___");
           let code = "";
           parts.forEach((p, i) => { code += p + (i < parts.length - 1 ? vals[i] : ""); });
           busy(true);
           runEl.innerHTML = '<p class="running">' + icon("relogio", 16) + ' <span class="run-status">Testando sua resposta…</span></p>';
-          const res = await Runner.run({ code, tests: ex.testes, stdin: ex.entrada || [], files, onStatus: (s) => { const st = runEl.querySelector(".run-status"); if (st) st.textContent = s; } });
+          const res = await Runner.run({ code, tests: ex.testes, stdin: ex.entrada || [], files, linguagem: modo, banco, onStatus: (s) => { const st = runEl.querySelector(".run-status"); if (st) st.textContent = s; } });
           busy(false);
           renderOutput(runEl, res, { showTests: true, quietEmpty: true });
           ok = !res.error && res.tests.length > 0 && res.tests.every((t) => t.ok);
         }
         inputs.forEach((inp, i) => {
-          const right = (ex.respostas[i] || []).some((a) => normalizeAnswer(a) === normalizeAnswer(inp.value));
+          const right = (ex.respostas[i] || []).some((a) => normalizeAnswer(a, modo) === normalizeAnswer(inp.value, modo));
           inp.classList.toggle("blank-right", right || ok);
           inp.classList.toggle("blank-wrong", !right && !ok);
         });
@@ -307,7 +341,7 @@
         root.querySelectorAll("input, textarea").forEach((i) => (i.disabled = true));
         feedback(r.ok ? "ok" : "err", r.ok ? "<p><strong>Certo.</strong></p>" : "<p><strong>Não foi dessa vez.</strong> A resposta esperada aparece abaixo.</p>");
         if (!r.ok) showSolution();
-        else if (ex.comentario) solEl.innerHTML = '<div class="prose">' + MD.render(ex.comentario) + "</div>";
+        else if (ex.comentario) solEl.innerHTML = '<div class="prose">' + MD.render(ex.comentario, modo) + "</div>";
         btnNext.hidden = false;
         btnNext.onclick = () => opts.onAnswer && opts.onAnswer(r.ok);
         btnNext.focus();
@@ -352,7 +386,7 @@
         msg += " (exercício já resolvido antes; refazer não dá XP)";
       }
       msg += "</p>";
-      if (ex.comentario && !(ex.solucao)) msg += '<div class="prose">' + MD.render(ex.comentario) + "</div>";
+      if (ex.comentario && !(ex.solucao)) msg += '<div class="prose">' + MD.render(ex.comentario, modo) + "</div>";
       feedback("ok", msg);
       if (persistent) Store.setDraft(item.id, null);
       if (ex.solucao) updateSolutionButton();
@@ -397,5 +431,5 @@
     return { refresh: () => editor && editor.refresh() };
   }
 
-  window.Exercise = { mount, renderOutput, TIPO_NOME };
+  window.Exercise = { mount, renderOutput, bancoPanel, TIPO_NOME };
 })();
