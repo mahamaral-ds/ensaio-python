@@ -1,5 +1,5 @@
 /*
- * Registro de conteúdo do Ensaio.
+ * Registro de conteúdo do Level Code.
  *
  * Cada arquivo em content/ chama Ensaio.modulo((r) => ({ ...definição... })).
  * O parâmetro `r` é String.raw: use r`...` para blocos de código Python, assim

@@ -380,7 +380,7 @@ print(mapear_categorias(["A", "X", "B"], [("A", "ti"), ("B", "frete")]))
         "`async def` define uma *corrotina*. Dentro dela, `await` marca um ponto de espera onde o controle pode passar para outra tarefa.",
         "`asyncio.gather(c1, c2, c3)` roda várias corrotinas ao mesmo tempo e devolve os resultados **na ordem em que foram passadas**.",
         "O ganho aparece em tarefas de I/O (entrada e saída). Em cálculo pesado de CPU, `asyncio` não acelera nada: aí entram `multiprocessing` ou a vetorização.",
-        "> Num script, o ponto de entrada é `asyncio.run(main())`, e no Ensaio isso funciona normalmente. No Jupyter, que já tem um laço de eventos rodando, use `await main()` direto na célula.",
+        "> Num script, o ponto de entrada é `asyncio.run(main())`, e no Level Code isso funciona normalmente. No Jupyter, que já tem um laço de eventos rodando, use `await main()` direto na célula.",
       ],
       exemplo: r`
 import asyncio, time
@@ -521,7 +521,7 @@ asyncio.run(main())
         "Códigos de status: **2xx** sucesso (200 OK); **4xx** erro do cliente (400 requisição inválida, 401/403 sem permissão, 404 não encontrado, 429 excesso de requisições); **5xx** erro do servidor (500, 503).",
         "Sempre trate erros: `r.raise_for_status()` levanta uma exceção para os status 4xx e 5xx. Use `timeout` e repita as tentativas quando o erro for temporário (5xx, 429).",
         "APIs costumam **paginar**: devolvem uma página por vez e indicam a próxima. Percorra até não haver mais páginas. `pd.DataFrame(lista)` ou `pd.json_normalize` transformam o JSON em tabela.",
-        "> No navegador, o Ensaio usa o módulo `api_ficticia`, que tem a mesma interface do `requests`, com dados fictícios e sem rede. No seu computador, troque por `import requests`. Credenciais vão em variáveis de ambiente, nunca no código.",
+        "> No navegador, o Level Code usa o módulo `api_ficticia`, que tem a mesma interface do `requests`, com dados fictícios e sem rede. No seu computador, troque por `import requests`. Credenciais vão em variáveis de ambiente, nunca no código.",
       ],
       exemplo: r`
 import api_ficticia as api   # mesma interface do requests

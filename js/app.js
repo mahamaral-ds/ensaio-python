@@ -1,4 +1,4 @@
-/* Ensaio: telas, navegação e microinterações. */
+/* Level Code: telas, navegação e microinterações. */
 (function () {
   "use strict";
   const esc = (s) => MD.esc(s);
@@ -172,7 +172,7 @@
     main.innerHTML =
       '<div class="page">' +
       '<header class="page-head"><p class="kicker">' + esc(fmtDate(Store.today())) + "</p><h1>Caderno de hoje</h1></header>" +
-      (first ? '<div class="card intro prose"><p><strong>Bem-vindo ao Ensaio.</strong> Cada lição é uma página do caderno: uma anotação curta, um experimento que você roda aqui mesmo, um erro comum e quatro exercícios corrigidos automaticamente.</p><p>Já sabe parte do conteúdo? Em <a href="#/trilhas">Trilhas</a>, cada módulo tem um <strong>teste de nivelamento</strong> para pular o que você domina.</p></div>' : "") +
+      (first ? '<div class="card intro prose"><p><strong>Bem-vindo ao Level Code.</strong> Cada lição é uma página do caderno: uma anotação curta, um experimento que você roda aqui mesmo, um erro comum e quatro exercícios corrigidos automaticamente.</p><p>Já sabe parte do conteúdo? Em <a href="#/trilhas">Trilhas</a>, cada módulo tem um <strong>teste de nivelamento</strong> para pular o que você domina.</p></div>' : "") +
       '<div class="grid-2">' +
       '<section class="card card-continue">' + cont + "</section>" +
       '<section class="card"><p class="card-kicker">Meta do dia</p><div class="goal-num"><span class="big">' + Math.min(tx, goal) + '</span><span class="muted"> / ' + goal + " XP</span></div>" +

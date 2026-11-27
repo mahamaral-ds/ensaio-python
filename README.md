@@ -1,4 +1,4 @@
-# Ensaio · Caderno de estudos
+# Level Code · Caderno de estudos
 
 Um caderno de estudos gamificado que roda inteiro no navegador, inclusive no celular. A primeira trilha ensina Python do básico à ciência de dados: o código é executado com o [Pyodide](https://pyodide.org), os exercícios são corrigidos por testes automáticos e o progresso fica salvo no próprio navegador. Não há servidor nem login.
 

@@ -1,5 +1,5 @@
 /*
- * Service worker do Ensaio: permite abrir o app sem internet depois do primeiro acesso.
+ * Service worker do Level Code: permite abrir o app sem internet depois do primeiro acesso.
  * - Arquivos do próprio app: rede primeiro (sempre a versão mais nova), cache como reserva.
  * - Bibliotecas externas (Pyodide, pacotes Python, CodeMirror, fontes): cache primeiro.
  */

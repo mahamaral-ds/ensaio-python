@@ -823,7 +823,7 @@ print(sem_cadastro, nota_ponderada)
         "Sempre dê contexto: `ax.set_title`, `ax.set_xlabel`, `ax.set_ylabel` e, com várias séries, `ax.legend()`.",
         "Escolha pelo objetivo: **linha** para evolução no tempo; **barras** (horizontais e ordenadas) para comparar categorias; **dispersão** para relação entre duas variáveis; **histograma** para distribuição.",
         "O pandas desenha direto: `serie.plot(kind='bar', ax=ax)`. Para salvar em arquivo, use `fig.savefig('grafico.png', dpi=150)`.",
-        "> No Ensaio, os gráficos criados aparecem automaticamente abaixo da saída.",
+        "> No Level Code, os gráficos criados aparecem automaticamente abaixo da saída.",
       ],
       exemplo: r`
 import pandas as pd

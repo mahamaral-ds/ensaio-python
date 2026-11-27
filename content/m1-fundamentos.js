@@ -294,7 +294,7 @@ print(caixas_cheias, sobra, caixas_necessarias)
         "`print()` mostra valores. Aceita vários argumentos, separados por espaço. Os parâmetros `sep` e `end` mudam o separador e o final da linha.",
         "`input('mensagem')` lê o que a pessoa digita e **sempre devolve texto**. Para fazer contas, converta: `int(input(...))`.",
         "**f-strings** colocam valores dentro do texto: `f'Total: {total}'`. Depois de `:` vem a formatação: `{valor:.2f}` (2 casas), `{valor:,.2f}` (milhar), `{n:03d}` (zeros à esquerda), `{nome:>10}` (alinhado à direita).",
-        "> No Ensaio, os exercícios com `input()` recebem entradas simuladas, mostradas acima do editor.",
+        "> No Level Code, os exercícios com `input()` recebem entradas simuladas, mostradas acima do editor.",
       ],
       entrada: ["Ana", "30"],
       exemplo: r`
@@ -594,7 +594,7 @@ print(desconto)
       titulo: "Laço while",
       explicacao: [
         "`while condicao:` repete o bloco enquanto a condição for verdadeira. Use quando você não sabe de antemão quantas voltas serão necessárias.",
-        "Algo dentro do laço precisa mudar a condição, senão ele nunca termina (laço infinito). No Ensaio, o código é interrompido depois de alguns segundos.",
+        "Algo dentro do laço precisa mudar a condição, senão ele nunca termina (laço infinito). No Level Code, o código é interrompido depois de alguns segundos.",
         "`break` sai do laço na hora. `continue` pula para a próxima volta.",
         "Padrão comum: o **acumulador**, uma variável que começa em 0 e vai somando a cada volta.",
       ],
@@ -620,7 +620,7 @@ i = 0
 while i < 5:
     print(i)
 `,
-        explicacao: "Faltou `i += 1` dentro do laço: `i` fica 0 para sempre e o laço não acaba. Sempre pergunte: o que faz a condição ficar falsa? (Se executar, o Ensaio vai interromper depois de alguns segundos.)",
+        explicacao: "Faltou `i += 1` dentro do laço: `i` fica 0 para sempre e o laço não acaba. Sempre pergunte: o que faz a condição ficar falsa? (Se executar, o Level Code vai interromper depois de alguns segundos.)",
       },
       exercicios: [
         {

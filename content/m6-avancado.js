@@ -16,7 +16,7 @@ Ensaio.modulo((r) => {
       "vendas_grandes.csv": linhas.join("\n") + "\n",
       // pytest simplificado, para os testes rodarem no navegador
       "pytest.py": r`
-"""Versão simplificada do pytest usada no Ensaio (no navegador).
+"""Versão simplificada do pytest usada no Level Code (no navegador).
 
 No seu computador, instale o pytest de verdade (pip install pytest)
 e rode o comando pytest no terminal: ele encontra os arquivos test_*.py sozinho.
@@ -796,7 +796,7 @@ print(parse_valor("1.234,56"), parse_valor("abc"))
           "O pytest procura arquivos `test_*.py`, executa cada função de teste e mostra quais passaram e quais falharam.",
           "`with pytest.raises(ValueError):` verifica que um erro é levantado. `@pytest.mark.parametrize` roda o mesmo teste com várias entradas. `pytest.approx` compara floats com tolerância.",
           "Teste as **bordas**: o limite exato de uma faixa, lista vazia, valor zero, texto inválido. É onde os bugs se escondem.",
-          "> No Ensaio, `pytest.main()` roda uma versão simplificada do pytest. No seu computador, instale com `pip install pytest` e rode `pytest` no terminal.",
+          "> No Level Code, `pytest.main()` roda uma versão simplificada do pytest. No seu computador, instale com `pip install pytest` e rode `pytest` no terminal.",
         ],
         exemplo: r`
 import pytest

@@ -400,7 +400,7 @@
       throw new Error("O arquivo não é um JSON válido.");
     }
     if (!s || s.app !== "ensaio" || typeof s.xp !== "number" || typeof s.ex !== "object") {
-      throw new Error("Esse arquivo não parece ser um progresso exportado do Ensaio.");
+      throw new Error("Esse arquivo não parece ser um progresso exportado do Level Code.");
     }
     delete s.exportedAt;
     state = Object.assign(fresh(), s, { settings: Object.assign(fresh().settings, s.settings || {}) });
