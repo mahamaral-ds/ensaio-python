@@ -108,8 +108,8 @@ h3 { font-size: 1.2rem; }
 .brand-name { font-family: var(--f-title); font-size: 1.5rem; line-height: 1; white-space: nowrap; }
 .top .brand-name { font-size: 1.3rem; }
 .brand-sub { margin: 2px 0 0 32px; font-size: .82rem; color: var(--ink-2); font-family: var(--f-mono); }
-.top-status { display: flex; gap: 8px; }
-.chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--f-mono); font-size: .8rem; border: 1px solid var(--rule-strong); padding: 2px 8px; border-radius: var(--r); background: var(--sheet); }
+.top-status { display: flex; gap: 6px; flex-shrink: 0; }
+.chip { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-family: var(--f-mono); font-size: .8rem; border: 1px solid var(--rule-strong); padding: 2px 8px; border-radius: var(--r); background: var(--sheet); }
 .chip-xp { border-color: var(--ink); }
 
 main { padding: 20px var(--gutter) 96px; outline: none; }
