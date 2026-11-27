@@ -1,0 +1,14 @@
+{
+  "name": "Ensaio · Python na prática",
+  "short_name": "Ensaio",
+  "description": "Caderno de laboratório para aprender Python na prática, do básico à ciência de dados.",
+  "lang": "pt-BR",
+  "start_url": "./index.html#/hoje",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F4F1EA",
+  "theme_color": "#F4F1EA",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

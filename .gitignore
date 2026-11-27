@@ -1,0 +1,11 @@
+# Progresso exportado (é pessoal)
+ensaio-progresso-*.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/

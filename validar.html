@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ensaio · validar conteúdo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { padding: 24px; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--sheet); }
+    td, th { border: 1px solid var(--rule-strong); padding: 6px 8px; text-align: left; vertical-align: top; }
+    .ok { color: var(--ok); } .bad { color: var(--err); } .warn { color: var(--ink-2); }
+    pre { white-space: pre-wrap; margin: 0; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="page page-wide">
+    <h1>Validar conteúdo</h1>
+    <p class="lead">Roda cada solução contra os testes, confere as saídas dos exercícios de prever e as respostas de completar. Use depois de criar ou editar lições.</p>
+    <p><label>Módulo: <select id="mod"><option value="">todos</option></select></label>
+      <button class="btn btn-primary" id="go">Validar</button></p>
+    <p id="status" class="muted" aria-live="polite"></p>
+    <div id="out"></div>
+  </div>
+
+  <script src="js/ensaio.js"></script>
+  <script src="content/m1-fundamentos.js"></script>
+  <script src="content/m2-estruturas.js"></script>
+  <script src="content/m3-funcoes.js"></script>
+  <script src="content/m4-organizacao.js"></script>
+  <script src="content/m5-objetos.js"></script>
+  <script src="content/m6-avancado.js"></script>
+  <script src="content/m7-dados.js"></script>
+  <script src="content/m8-topicos.js"></script>
+  <script src="js/md.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/runner.js"></script>
+  <script>
+  (function () {
+    Ensaio.preparar();
+    const sel = document.getElementById("mod");
+    Ensaio.modules.forEach((m) => sel.insertAdjacentHTML("beforeend", '<option value="' + m.id + '">' + m.id + " · " + m.titulo + "</option>"));
+    const norm = (s) => String(s).replace(/\r/g, "").split("\n").map((l) => l.replace(/\s+$/, "")).join("\n").trim();
+    const fill = (ex, vals) => {
+      const parts = String(ex.codigo).replace(/^\n/, "").replace(/\s+$/, "").split("___");
+      let c = "";
+      parts.forEach((p, i) => { c += p + (i < parts.length - 1 ? vals[i] : ""); });
+      return c;
+    };
+    const passed = (res) => !res.error && res.tests.length > 0 && res.tests.every((t) => t.ok);
+    const why = (res) => res.error ? res.error.type + ": " + res.error.message + (res.error.line ? " (linha " + res.error.line + ")" : "")
+      : res.tests.filter((t) => !t.ok).map((t) => "✗ " + t.msg + (t.detail ? " — " + t.detail : "")).join("\n");
+
+    document.getElementById("go").onclick = async () => {
+      const only = sel.value;
+      const rows = [];
+      const status = document.getElementById("status");
+      let n = 0, bad = 0;
+      const report = (id, ok, msg) => { if (ok !== true) { rows.push([id, ok, msg]); if (ok === false) bad++; } };
+      const mods = Ensaio.modules.filter((m) => !only || m.id === only);
+      const total = mods.reduce((a, m) => a + m.licoes.length + m.desafios.length + m.licoes.reduce((b, l) => b + l.exercicios.length, 0), 0);
+
+      for (const m of mods) {
+        for (const l of m.licoes) {
+          n++;
+          status.textContent = "Validando " + n + " de " + total + ": " + l.key;
+          if (l.exercicios.length !== 4) report(l.key, "warn", l.exercicios.length + " exercícios (o padrão é 4)");
+          if (!l.erro) report(l.key, "warn", "sem seção de erro comum");
+          const r0 = await Runner.run({ code: l.exemplo, files: m.arquivos, stdin: l.entrada || [] });
+          if (r0.error) report(l.key + " (exemplo)", false, why(r0));
+          for (const ex of l.exercicios) {
+            n++;
+            status.textContent = "Validando " + n + " de " + total + ": " + ex.id;
+            const item = Ensaio.items[ex.id];
+            await checkItem(item, report);
+          }
+        }
+        for (const d of m.desafios) {
+          n++;
+          status.textContent = "Validando " + n + " de " + total + ": " + d.id_completo;
+          await checkItem(Ensaio.items[d.id_completo], report);
+        }
+      }
+      status.textContent = "Concluído: " + n + " itens verificados, " + bad + " com erro, " + (rows.length - bad) + " avisos.";
+      document.getElementById("out").innerHTML = rows.length
+        ? "<table><tr><th>Item</th><th>Resultado</th><th>Detalhe</th></tr>" + rows.map((r) => "<tr><td><code>" + MD.esc(r[0]) + '</code></td><td class="' + (r[1] === false ? "bad" : "warn") + '">' + (r[1] === false ? "erro" : "aviso") + "</td><td><pre>" + MD.esc(r[2]) + "</pre></td></tr>").join("") + "</table>"
+        : '<p class="ok">Tudo certo.</p>';
+      window.__validacao = { n, bad, rows };
+    };
+
+    async function checkItem(item, report) {
+      const ex = item.ex, id = item.id, files = Ensaio.arquivosDe(item);
+      const dicas = (ex.dicas || []).length;
+      if (dicas !== 3) report(id, "warn", dicas + " dicas (o padrão é 3)");
+      if (ex.tipo === "multipla" || (ex.tipo === "prever" && ex.opcoes)) {
+        if (!(ex.resposta >= 0 && ex.resposta < ex.opcoes.length)) report(id, false, "índice de resposta fora das opções");
+        if (ex.tipo === "prever") {
+          const r = await Runner.run({ code: ex.codigo, files, stdin: ex.entrada || [] });
+          if (r.error && !ex.esperaErro) report(id, false, "o código do prever deu erro: " + why(r));
+          else if (!ex.esperaErro && norm(r.out) !== norm(ex.opcoes[ex.resposta])) report(id, false, "saída real:\n" + r.out + "\nresposta marcada:\n" + ex.opcoes[ex.resposta]);
+          const dup = ex.opcoes.filter((o, i) => i !== ex.resposta && norm(o) === norm(r.out));
+          if (dup.length) report(id, false, "outra opção também é igual à saída real");
+        }
+        return;
+      }
+      if (ex.tipo === "prever") {
+        const r = await Runner.run({ code: ex.codigo, files, stdin: ex.entrada || [] });
+        if (norm(r.out) !== norm(ex.saida)) report(id, false, "saída real:\n" + r.out + "\nesperada:\n" + ex.saida);
+        return;
+      }
+      if (ex.tipo === "completar") {
+        const blanks = String(ex.codigo).split("___").length - 1;
+        if (!ex.respostas || ex.respostas.length !== blanks) { report(id, false, blanks + " lacunas e " + (ex.respostas || []).length + " respostas"); return; }
+        if (ex.testes && ex.testes.length) {
+          const r = await Runner.run({ code: fill(ex, ex.respostas.map((a) => a[0])), tests: ex.testes, files, stdin: ex.entrada || [] });
+          if (!passed(r)) report(id, false, "a resposta oficial não passa nos testes:\n" + why(r));
+        } else report(id, "warn", "completar sem testes");
+        return;
+      }
+      // corrigir / escrever
+      if (!ex.testes || !ex.testes.length) { report(id, false, "sem testes"); return; }
+      if (!ex.solucao) { report(id, false, "sem solução"); return; }
+      const rs = await Runner.run({ code: ex.solucao, tests: ex.testes, files, stdin: ex.entrada || [] });
+      if (!passed(rs)) report(id, false, "a solução não passa:\n" + why(rs));
+      const ri = await Runner.run({ code: ex.inicial || "", tests: ex.testes, files, stdin: ex.entrada || [] });
+      if (passed(ri)) report(id, false, "o código inicial já passa em todos os testes");
+    }
+  })();
+  </script>
+</body>
+</html>
