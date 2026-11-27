@@ -1,6 +1,6 @@
-# Ensaio · Python na prática
+# Ensaio · Caderno de estudos
 
-Um caderno de laboratório para aprender Python do básico à ciência de dados. O app roda inteiro no navegador, inclusive no celular: o Python é executado com o [Pyodide](https://pyodide.org), os exercícios são corrigidos por testes automáticos e o progresso fica salvo no próprio navegador. Não há servidor nem login.
+Um caderno de estudos gamificado que roda inteiro no navegador, inclusive no celular. A primeira trilha ensina Python do básico à ciência de dados: o código é executado com o [Pyodide](https://pyodide.org), os exercícios são corrigidos por testes automáticos e o progresso fica salvo no próprio navegador. Não há servidor nem login.
 
 ## Como abrir
 
@@ -14,7 +14,7 @@ python -m http.server 8000
 
 Depois, abra `http://localhost:8000` no navegador.
 
-**No celular:** publique a pasta no GitHub Pages (Settings → Pages → Branch `main`, pasta `/root`) e abra o endereço `https://<seu-usuario>.github.io/ensaio-python/`. No Chrome do Android ou no Safari do iPhone, use "Adicionar à tela inicial" para abrir como app.
+**No celular:** abra https://mahamaral-ds.github.io/level-code/ (o site é publicado pelo GitHub Pages a partir da branch `main`). No Chrome do Android ou no Safari do iPhone, use "Adicionar à tela inicial" para abrir como app.
 
 > **Primeiro acesso:** é preciso internet para baixar o Python do navegador (cerca de 10 MB) e, quando você chegar ao módulo 7, o NumPy, o pandas e o matplotlib (cerca de 30 MB). Depois disso, tudo fica guardado e o app abre sem internet.
 

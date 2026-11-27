@@ -1,7 +1,7 @@
 {
-  "name": "Ensaio · Python na prática",
+  "name": "Ensaio · Caderno de estudos",
   "short_name": "Ensaio",
-  "description": "Caderno de laboratório para aprender Python na prática, do básico à ciência de dados.",
+  "description": "Caderno de estudos com prática, exercícios corrigidos e revisão espaçada.",
   "lang": "pt-BR",
   "start_url": "./index.html#/hoje",
   "scope": "./",
