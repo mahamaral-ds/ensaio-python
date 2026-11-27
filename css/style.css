@@ -105,7 +105,8 @@ h3 { font-size: 1.2rem; }
   background: linear-gradient(transparent 58%, var(--hl) 58%, var(--hl) 86%, transparent 86%);
 }
 .brand-mark::after { content: ""; position: absolute; left: 4px; right: 4px; top: 5px; height: 1.5px; background: var(--ink); }
-.brand-name { font-family: var(--f-title); font-size: 1.5rem; line-height: 1; }
+.brand-name { font-family: var(--f-title); font-size: 1.5rem; line-height: 1; white-space: nowrap; }
+.top .brand-name { font-size: 1.3rem; }
 .brand-sub { margin: 2px 0 0 32px; font-size: .82rem; color: var(--ink-2); font-family: var(--f-mono); }
 .top-status { display: flex; gap: 8px; }
 .chip { display: inline-flex; align-items: center; gap: 4px; font-family: var(--f-mono); font-size: .8rem; border: 1px solid var(--rule-strong); padding: 2px 8px; border-radius: var(--r); background: var(--sheet); }
